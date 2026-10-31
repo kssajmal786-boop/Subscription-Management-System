@@ -1,0 +1,123 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}{{ plan.plan_name }} - Plan Details - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h3 class="fw-bold mb-0">{{ plan.plan_name }}</h3>
+            {% if plan.is_active %}
+            <span class="badge bg-success-subtle text-success">Active</span>
+            {% else %}
+            <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+            {% endif %}
+        </div>
+        <p class="text-muted mb-0 small">Billing Cycle: {{ plan.billing_cycle }} &bull; Linked Product: {{ plan.product.name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'subscriptions:plan_update' plan.pk %}" class="btn btn-outline-custom btn-sm">
+            <i class="bi bi-pencil me-1"></i> Edit Plan
+        </a>
+        <a href="{% url 'subscriptions:plan_list' %}" class="btn btn-outline-custom btn-sm">
+            &larr; Back to Plans
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card card-enterprise h-100">
+            <div class="card-header fw-bold">
+                <i class="bi bi-gear me-1 text-primary"></i> Plan Configuration
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted small" style="width: 40%;">Base Cycle Price</td>
+                            <td class="fw-bold fs-5 text-primary">₹{{ plan.base_price }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Billing Cycle</td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">{{ plan.billing_cycle }}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Linked Product</td>
+                            <td class="fw-semibold">
+                                <a href="{% url 'subscriptions:product_detail' plan.product.pk %}" class="text-decoration-none">
+                                    {{ plan.product.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Linked Variant</td>
+                            <td>{{ plan.variant.attribute_value|default:"Standard Base (No Variant)" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Minimum Quantity</td>
+                            <td>{{ plan.min_quantity }} Unit{{ plan.min_quantity|pluralize }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Default Duration</td>
+                            <td>{{ plan.default_duration }} cycles</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Max Billing Cycles</td>
+                            <td>{{ plan.max_cycles|default:"Indefinite / Unlimited" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card card-enterprise h-100">
+            <div class="card-header fw-bold">
+                <i class="bi bi-shield-check me-1 text-primary"></i> Lifecycle & Pause Rules
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted small" style="width: 40%;">Auto-Renewal Default</td>
+                            <td>
+                                {% if plan.auto_renew_default %}
+                                <span class="badge bg-success-subtle text-success">Enabled by Default</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary">Manual Renewal</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Customer Pause Allowed</td>
+                            <td>
+                                {% if plan.allow_pause %}
+                                <span class="text-success fw-semibold"><i class="bi bi-check-circle-fill"></i> Allowed</span>
+                                {% else %}
+                                <span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill"></i> Not Allowed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Max Pause Days</td>
+                            <td>{{ plan.max_pause_days }} days per pause action</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Overdue Grace Period</td>
+                            <td>{{ plan.grace_period_days }} days before suspension</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small">Active Contracts</td>
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary">{{ subscriptions_count }} Active Contract{{ subscriptions_count|pluralize }}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

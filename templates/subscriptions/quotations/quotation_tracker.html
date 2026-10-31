@@ -1,0 +1,127 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Quotation Pipeline Tracker - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Quotation Pipeline Tracker</h3>
+        <p class="text-muted mb-0 small">Monitor draft and issued proposals across validity expiration windows</p>
+    </div>
+    <a href="{% url 'subscriptions:quotation_builder' %}" class="btn btn-primary-custom" id="btn_tracker_new_quote">
+        <i class="bi bi-plus-lg me-1"></i> Build New Quotation
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card card-enterprise mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search }}" class="form-control border-start-0" placeholder="Search quotation number, customer name, email..." id="search_quotations">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select" id="filter_quote_status">
+                    <option value="">All Pipeline Statuses</option>
+                    <option value="Draft" {% if selected_status == 'Draft' %}selected{% endif %}>Drafts Only</option>
+                    <option value="Quotation" {% if selected_status == 'Quotation' %}selected{% endif %}>Quotation Sent to Customer</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary-custom w-100" id="btn_filter_quotations">Filter</button>
+                <a href="{% url 'subscriptions:quotation_tracker' %}" class="btn btn-outline-custom">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Quotations Table -->
+<div class="card card-enterprise">
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Quotation #</th>
+                    <th>Customer</th>
+                    <th>Target Plan</th>
+                    <th>Total Value</th>
+                    <th>Validity Expiration</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in quotations %}
+                <tr>
+                    <td>
+                        <a href="{% url 'subscriptions:quotation_detail' q.pk %}" class="fw-bold text-decoration-none text-primary" id="quote_num_{{ q.pk }}">
+                            {{ q.subscription_number }}
+                        </a>
+                        <div class="text-muted" style="font-size: 0.75rem;">Created {{ q.created_at|date:"M d, Y" }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ q.customer.company_name }}</div>
+                        <div class="small text-muted">{{ q.customer.name }} &bull; {{ q.customer.email }}</div>
+                    </td>
+                    <td>
+                        <div>{{ q.plan.plan_name }}</div>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ q.plan.billing_cycle }}</span>
+                    </td>
+                    <td class="fw-bold fs-6">
+                        ₹{{ q.total_amount }}
+                    </td>
+                    <td>
+                        {% if q.quotation_validity_date %}
+                            {% if q.quotation_validity_date < today %}
+                            <span class="text-danger fw-semibold"><i class="bi bi-clock-history"></i> Expired ({{ q.quotation_validity_date|date:"M d" }})</span>
+                            {% else %}
+                            <span class="text-dark"><i class="bi bi-calendar-event"></i> {{ q.quotation_validity_date|date:"M d, Y" }}</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge-status badge-{{ q.status|lower }}">
+                            {{ q.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <div class="d-inline-flex gap-1">
+                            <a href="{% url 'subscriptions:quotation_detail' q.pk %}" class="btn btn-outline-custom btn-sm py-1 px-2" id="btn_review_quote_{{ q.pk }}">
+                                Review Proposal
+                            </a>
+                            {% if q.status == 'Draft' %}
+                            <form method="post" action="{% url 'subscriptions:quotation_send' q.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-primary btn-sm py-1 px-2" title="Send to Customer">
+                                    <i class="bi bi-send"></i> Send
+                                </button>
+                            </form>
+                            {% elif q.status == 'Quotation' %}
+                            <form method="post" action="{% url 'subscriptions:quotation_confirm' q.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-sm py-1 px-2" title="Accept & Convert to Subscription">
+                                    <i class="bi bi-check-lg"></i> Accept & Convert
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-file-earmark-text fs-1 d-block mb-2 text-secondary"></i>
+                        No active quotations found in the pipeline. Click "Build New Quotation" to draft one.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

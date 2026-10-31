@@ -1,0 +1,77 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}{% if is_create %}Add Product{% else %}Edit Product: {{ product.name }}{% endif %} - Subscribify{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">{% if is_create %}Add New Product{% else %}Edit Product{% endif %}</h3>
+                <p class="text-muted mb-0 small">Configure catalog metadata, pricing parameters, and GST rates</p>
+            </div>
+            <a href="{% url 'subscriptions:product_list' %}" class="btn btn-outline-custom btn-sm">
+                &larr; Back to Products
+            </a>
+        </div>
+
+        <div class="card card-enterprise">
+            <div class="card-body p-4">
+                <form method="post" id="product_form">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Product Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Product Type <span class="text-danger">*</span></label>
+                            {{ form.product_type }}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Base Sales Price (₹) <span class="text-danger">*</span></label>
+                            {{ form.base_sales_price }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Cost Price (₹)</label>
+                            {{ form.cost_price }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Default GST Tax Rate (%) <span class="text-danger">*</span></label>
+                            {{ form.tax_rate }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">HSN / SAC Code</label>
+                            {{ form.hsn_sac_code }}
+                            <div class="form-text">e.g. 997331 for software licenses or 998313 for IT services.</div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center mt-4">
+                            <div class="form-check form-switch fs-6 mt-3">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                    Active in Catalog
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Product Description</label>
+                            {{ form.description }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{% url 'subscriptions:product_list' %}" class="btn btn-outline-custom">Cancel</a>
+                        <button type="submit" class="btn btn-primary-custom" id="btn_save_product">
+                            <i class="bi bi-check2 me-1"></i> Save Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

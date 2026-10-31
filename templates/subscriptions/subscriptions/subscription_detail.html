@@ -1,0 +1,421 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Subscription {{ subscription.subscription_number }} - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h3 class="fw-bold mb-0">{{ subscription.subscription_number }}</h3>
+            <span class="badge-status badge-{{ subscription.status|lower }}">
+                {{ subscription.get_status_display }}
+            </span>
+            {% if subscription.quotation_number %}
+            <span class="badge bg-light text-muted border">Orig. {{ subscription.quotation_number }}</span>
+            {% endif %}
+        </div>
+        <p class="text-muted mb-0 small">
+            Customer: <strong>{{ subscription.customer.company_name }}</strong> &bull; Plan: {{ subscription.plan.plan_name }} ({{ subscription.plan.billing_cycle }})
+        </p>
+    </div>
+    
+    <!-- Action Controls -->
+    <div class="d-flex gap-2">
+        {% if subscription.status == 'Confirmed' %}
+        <form method="post" action="/api/v1/subscriptions/{{ subscription.pk }}/activate/">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm" id="btn_activate_sub">
+                <i class="bi bi-play-circle-fill me-1"></i> Activate Recurring Contract
+            </button>
+        </form>
+        {% elif subscription.status == 'Active' %}
+            {% if subscription.plan.allow_pause %}
+            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#pauseModal" id="btn_pause_sub_modal">
+                <i class="bi bi-pause-circle-fill me-1"></i> Pause Subscription
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal" id="btn_cancel_sub_modal">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+        {% elif subscription.status == 'Paused' %}
+            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#resumeModal" id="btn_resume_sub_modal">
+                <i class="bi bi-play-circle-fill me-1"></i> Resume Subscription
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+        {% endif %}
+        <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-outline-custom btn-sm">
+            &larr; Back to Subscriptions
+        </a>
+    </div>
+</div>
+
+<!-- Paused Alert Notice if Status == Paused -->
+{% if subscription.status == 'Paused' %}
+<div class="alert alert-warning border-warning shadow-sm d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-pause-circle-fill fs-2 text-warning"></i>
+        <div>
+            <h6 class="fw-bold mb-0">Subscription is currently PAUSED</h6>
+            <div class="small">
+                Paused on <strong>{{ subscription.paused_at }}</strong>. Automated recurring billing is suspended.
+                Upon resumption, billing and contract expiration dates will automatically shift forward by the total paused duration.
+            </div>
+        </div>
+    </div>
+    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#resumeModal">
+        <i class="bi bi-play-circle me-1"></i> Resume Now
+    </button>
+</div>
+{% endif %}
+
+<!-- Key Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="kpi-card py-2 px-3">
+            <div class="kpi-title" style="font-size: 0.72rem;">Cycle Amount</div>
+            <div class="fw-bold fs-5 text-primary">₹{{ subscription.total_amount }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Per {{ subscription.plan.billing_cycle }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card py-2 px-3">
+            <div class="kpi-title" style="font-size: 0.72rem;">Next Billing Date</div>
+            <div class="fw-bold fs-5 text-dark">
+                {% if subscription.status == 'Paused' %}
+                <span class="text-warning"><i class="bi bi-pause"></i> Halted</span>
+                {% elif subscription.next_billing_date %}
+                {{ subscription.next_billing_date|date:"M d, Y" }}
+                {% else %}
+                —
+                {% endif %}
+            </div>
+            <div class="text-muted" style="font-size: 0.75rem;">Next scheduled charge</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card py-2 px-3">
+            <div class="kpi-title" style="font-size: 0.72rem;">Contract Expiry / Renewal</div>
+            <div class="fw-bold fs-5 text-dark">
+                {{ subscription.expiry_date|date:"M d, Y"|default:"Indefinite" }}
+            </div>
+            <div class="text-muted" style="font-size: 0.75rem;">
+                Auto-Renew: {% if subscription.auto_renew %}<span class="text-success fw-semibold">Yes</span>{% else %}<span class="text-secondary">No</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card py-2 px-3">
+            <div class="kpi-title" style="font-size: 0.72rem;">Cumulative Paused</div>
+            <div class="fw-bold fs-5 text-secondary">{{ subscription.total_paused_days }} Days</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Total pause shifts</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card py-2 px-3">
+            <div class="kpi-title" style="font-size: 0.72rem;">Commencement</div>
+            <div class="fw-bold fs-5 text-dark">{{ subscription.start_date|date:"M d, Y"|default:"Pending" }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Contract start</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Customer Details -->
+    <div class="col-md-6">
+        <div class="card card-enterprise h-100">
+            <div class="card-header fw-bold">
+                <i class="bi bi-building me-1 text-primary"></i> Customer Billing Profile
+            </div>
+            <div class="card-body">
+                <h5 class="fw-bold text-dark mb-1">{{ subscription.customer.company_name }}</h5>
+                <div class="text-muted small mb-3">Primary Contact: {{ subscription.customer.name }}</div>
+                <table class="table table-borderless table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 30%;">Email:</td>
+                            <td class="fw-semibold">{{ subscription.customer.email }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Phone:</td>
+                            <td>{{ subscription.customer.phone|default:"Not provided" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">GST / Tax ID:</td>
+                            <td><code>{{ subscription.customer.gst_number|default:"Unregistered" }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Billing Address:</td>
+                            <td class="small">{{ subscription.customer.billing_address }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Parameters -->
+    <div class="col-md-6">
+        <div class="card card-enterprise h-100">
+            <div class="card-header fw-bold">
+                <i class="bi bi-calendar-range me-1 text-primary"></i> Subscription Plan Rules
+            </div>
+            <div class="card-body">
+                <h5 class="fw-bold text-dark mb-1">{{ subscription.plan.plan_name }}</h5>
+                <div class="text-muted small mb-3">Billing Cycle: {{ subscription.plan.billing_cycle }} @ ₹{{ subscription.plan.base_price }}</div>
+                <table class="table table-borderless table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 35%;">Pause Permission:</td>
+                            <td>
+                                {% if subscription.plan.allow_pause %}
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Allowed (Max {{ subscription.plan.max_pause_days }} days/action)</span>
+                                {% else %}
+                                <span class="text-muted"><i class="bi bi-x-circle"></i> Pause Disabled</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Grace Period:</td>
+                            <td>{{ subscription.plan.grace_period_days }} days after due date</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Auto-Renew Policy:</td>
+                            <td>{% if subscription.auto_renew %}Active automatic cycle renewal{% else %}Manual contract extension required{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Contract Notes:</td>
+                            <td class="small text-secondary">{{ subscription.notes|default:"None recorded." }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Frozen Snapshot Line Items -->
+<div class="card card-enterprise mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="fw-bold">
+            <i class="bi bi-lock-fill me-1 text-primary"></i> Contract Price Snapshot Lines (Immutable)
+        </div>
+        <span class="badge bg-light text-muted border">Guaranteed Fixed Rates</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Product Item</th>
+                    <th>Variant / Tier</th>
+                    <th class="text-center">Quantity</th>
+                    <th class="text-end">Agreed Unit Price</th>
+                    <th class="text-end">Agreed Tax Rate</th>
+                    <th class="text-end">Subtotal</th>
+                    <th class="text-end">Tax Amount</th>
+                    <th class="text-end">Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in subscription.lines.all %}
+                <tr>
+                    <td>
+                        <div class="fw-bold text-dark">{{ line.product.name }}</div>
+                        <div class="text-muted small">Type: {{ line.product.product_type }}</div>
+                    </td>
+                    <td>
+                        {% if line.variant %}
+                        <span class="badge bg-light text-dark border">{{ line.variant.attribute_value }}</span>
+                        <div class="text-muted" style="font-size: 0.75rem;">SKU: {{ line.variant.sku }}</div>
+                        {% else %}
+                        <span class="text-muted small">Base Product</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center fw-bold">{{ line.quantity }}</td>
+                    <td class="text-end">₹{{ line.unit_price }}</td>
+                    <td class="text-end"><span class="badge bg-light text-dark border">{{ line.tax_rate }}%</span></td>
+                    <td class="text-end">₹{{ line.line_subtotal }}</td>
+                    <td class="text-end text-secondary">+₹{{ line.tax_amount }}</td>
+                    <td class="text-end fw-bold">₹{{ line.line_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-footer bg-white border-top p-3 text-end">
+        <div class="row justify-content-end">
+            <div class="col-md-5">
+                <div class="d-flex justify-content-between mb-1 small text-muted">
+                    <span>Subtotal:</span>
+                    <span class="fw-semibold text-dark">₹{{ subscription.subtotal }}</span>
+                </div>
+                {% if subscription.applied_discount %}
+                <div class="d-flex justify-content-between mb-1 small text-success">
+                    <span>Discount ({{ subscription.applied_discount.code }}):</span>
+                    <span class="fw-semibold">-₹{{ subscription.discount_amount }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between mb-1 small text-muted">
+                    <span>Taxes (GST):</span>
+                    <span class="fw-semibold text-secondary">+₹{{ subscription.total_tax }}</span>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Billing Cycle Grand Total:</span>
+                    <span class="fw-bold fs-4 text-primary">₹{{ subscription.total_amount }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lifecycle History Audit Trail -->
+<div class="card card-enterprise">
+    <div class="card-header fw-bold">
+        <i class="bi bi-clock-history me-1 text-primary"></i> Complete Contract Lifecycle Audit Trail
+    </div>
+    <div class="card-body p-3">
+        <ul class="timeline mb-0">
+            {% for h in subscription.history.all %}
+            <li class="timeline-item">
+                <div class="timeline-marker"></div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-light text-dark border font-monospace small">{{ h.action }}</span>
+                    <span class="text-muted small">{{ h.created_at|date:"M d, Y H:i" }} by <strong>{{ h.performed_by }}</strong></span>
+                </div>
+                <div class="small text-muted">{{ h.description }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODALS FOR PAUSE, RESUME, AND CANCEL WORKFLOWS -->
+<!-- ============================================== -->
+
+<!-- 1. Pause Modal -->
+<div class="modal fade" id="pauseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'subscriptions:subscription_pause' subscription.pk %}" id="pause_form">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-warning-emphasis">
+                        <i class="bi bi-pause-circle me-1"></i> Pause Subscription
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Pausing halts all scheduled recurring invoices. The customer will not be billed while paused.
+                        Upon resumption, their next billing date and contract expiration date will be shifted forward by the pause duration.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Effective Pause Date</label>
+                        {{ pause_form.pause_date }}
+                        <div class="form-text">Defaults to today ({{ today }}) if not specified.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Reason for Pause</label>
+                        {{ pause_form.reason }}
+                    </div>
+                    <div class="alert alert-light border small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> Plan allows maximum <strong>{{ subscription.plan.max_pause_days }} days</strong> per pause action.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning" id="btn_confirm_pause">
+                        Confirm Pause
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Resume Modal with Real-Time Date Shift Math Preview -->
+<div class="modal fade" id="resumeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'subscriptions:subscription_resume' subscription.pk %}" id="resume_form">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-success">
+                        <i class="bi bi-play-circle me-1"></i> Resume Subscription
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Effective Resume Date</label>
+                        <input type="date" name="resume_date" class="form-control" value="{{ today|date:'Y-m-d' }}" id="id_resume_date" required>
+                        <div class="form-text">Paused on: <strong>{{ subscription.paused_at }}</strong></div>
+                    </div>
+
+                    <!-- Dynamic Calculation Box -->
+                    <div id="resume_math_preview" class="alert alert-info border-info" style="display: none;">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-calculator me-1"></i> Automatic Date-Shift Preview</h6>
+                        <ul class="mb-0 small ps-3">
+                            <li>Paused Duration: <strong id="preview_paused_days">0</strong> days</li>
+                            <li>New Next Billing Date: <strong id="preview_new_billing">—</strong></li>
+                            <li>New Contract Expiry: <strong id="preview_new_expiry">—</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="btn_confirm_resume">
+                        Confirm & Resume Subscription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'subscriptions:subscription_cancel' subscription.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-danger">Cancel Subscription</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to terminate subscription <strong>{{ subscription.subscription_number }}</strong>?</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Cancellation Reason</label>
+                        <input type="text" name="reason" class="form-control" placeholder="e.g. Non-payment, customer request" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Keep Active</button>
+                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Data payload for Resume JS Math -->
+{% if subscription.status == 'Paused' %}
+<script>
+    window.SUBSCRIBIFY_PAUSE_DATA = {
+        "paused_at": "{{ subscription.paused_at|date:'Y-m-d' }}",
+        "next_billing_date": "{{ subscription.next_billing_date|date:'Y-m-d' }}",
+        "expiry_date": "{{ subscription.expiry_date|date:'Y-m-d' }}"
+    };
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% load static %}
+<script src="{% static 'subscriptions/js/subscription_actions.js' %}"></script>
+{% endblock %}

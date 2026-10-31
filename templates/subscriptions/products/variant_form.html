@@ -1,0 +1,69 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Edit Variant: {{ variant.attribute_value }} - Subscribify{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">Edit Variant: {{ variant.attribute_value }}</h3>
+                <p class="text-muted mb-0 small">Linked Product: {{ variant.product.name }} (Base Price: ₹{{ variant.product.base_sales_price }})</p>
+            </div>
+            <a href="{% url 'subscriptions:product_detail' variant.product_id %}" class="btn btn-outline-custom btn-sm">
+                &larr; Back to {{ variant.product.name }}
+            </a>
+        </div>
+
+        <div class="card card-enterprise">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Linked Product</label>
+                        {{ form.product }}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Attribute Name <span class="text-danger">*</span></label>
+                            {{ form.attribute_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Attribute Value <span class="text-danger">*</span></label>
+                            {{ form.attribute_value }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Price Add-on (₹)</label>
+                            {{ form.additional_price }}
+                            <div class="form-text">Effective price: ₹{{ variant.product.base_sales_price }} + Add-on</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">SKU Identifier <span class="text-danger">*</span></label>
+                            {{ form.sku }}
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                            Variant is Active
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'subscriptions:product_detail' variant.product_id %}" class="btn btn-outline-custom">Cancel</a>
+                        <button type="submit" class="btn btn-primary-custom" id="btn_save_variant">
+                            <i class="bi bi-check2 me-1"></i> Update Variant
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

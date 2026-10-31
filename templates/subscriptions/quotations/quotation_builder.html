@@ -1,0 +1,195 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Build Quotation - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Quotation Builder</h3>
+        <p class="text-muted mb-0 small">Create customized quote proposals with real-time tax and conditional discount calculations</p>
+    </div>
+    <a href="{% url 'subscriptions:quotation_tracker' %}" class="btn btn-outline-custom btn-sm">
+        &larr; View Quotation Pipeline
+    </a>
+</div>
+
+<form method="post" id="quotation_builder_form">
+    {% csrf_token %}
+    
+    <div class="row g-4">
+        <!-- Main Form Column -->
+        <div class="col-lg-8">
+            <!-- Customer & Plan Card -->
+            <div class="card card-enterprise mb-4">
+                <div class="card-header fw-bold">
+                    <i class="bi bi-person-badge me-1 text-primary"></i> Contract & Billing Configuration
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Customer Account <span class="text-danger">*</span></label>
+                            <select name="customer_id" class="form-select" id="customer_select" required>
+                                <option value="">-- Choose Customer --</option>
+                                {% for cust in customers %}
+                                <option value="{{ cust.pk }}">{{ cust.company_name }} ({{ cust.name }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Subscription Billing Plan <span class="text-danger">*</span></label>
+                            <select name="plan_id" class="form-select" id="plan_select" required>
+                                <option value="">-- Choose Plan Template --</option>
+                                {% for plan in plans %}
+                                <option value="{{ plan.pk }}" data-product-id="{{ plan.product_id }}" data-variant-id="{{ plan.variant_id|default:'' }}">
+                                    {{ plan.plan_name }} [{{ plan.billing_cycle }} @ ₹{{ plan.base_price }}]
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Quotation Validity Period (Days)</label>
+                            <input type="number" name="validity_days" class="form-control" value="15" min="1" id="validity_days_input">
+                            <div class="form-text">Days customer has to accept quote before expiration.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Quotation Notes / Terms</label>
+                            <input type="text" name="notes" class="form-control" placeholder="e.g. Special enterprise pricing for Q4" id="quotation_notes_input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Items Table -->
+            <div class="card card-enterprise mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="fw-bold">
+                        <i class="bi bi-cart-check me-1 text-primary"></i> Product & Variant Line Items
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn_add_line">
+                        <i class="bi bi-plus-lg me-1"></i> Add Line Item
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle mb-0" id="quotation_lines_table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Variant / Tier</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>GST Rate</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="quotation_lines_tbody">
+                                <!-- Dynamic Rows appended via quotation_builder.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Calculation & Summary Sidebar -->
+        <div class="col-lg-4">
+            <div class="card card-enterprise sticky-top" style="top: 85px;">
+                <div class="card-header fw-bold">
+                    <i class="bi bi-receipt me-1 text-primary"></i> Real-time Quote Summary
+                </div>
+                <div class="card-body p-4">
+                    <!-- Promo Code Input -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Promotional Discount Code</label>
+                        <div class="input-group">
+                            <input type="text" name="discount_code" class="form-control text-uppercase" placeholder="e.g. WELCOME10" id="discount_code_input">
+                            <span class="input-group-text bg-white"><i class="bi bi-tag text-muted"></i></span>
+                        </div>
+                        <div id="discount_feedback" class="small mt-1"></div>
+                    </div>
+
+                    <div class="border-top pt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal (Excl. Tax)</span>
+                            <span class="fw-semibold" id="summary_subtotal">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Applied Discount</span>
+                            <span class="text-danger fw-semibold" id="summary_discount">-₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Estimated GST (18%)</span>
+                            <span class="fw-semibold text-secondary" id="summary_tax">+₹0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-6">Net Payable Total</span>
+                            <span class="fw-bold fs-4 text-primary" id="summary_total">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action_type" value="save_draft" class="btn btn-outline-custom" id="btn_save_draft">
+                            <i class="bi bi-file-earmark me-1"></i> Save as Draft
+                        </button>
+                        <button type="submit" name="action_type" value="send_now" class="btn btn-primary-custom" id="btn_send_now">
+                            <i class="bi bi-send-check me-1"></i> Send Quotation Directly
+                        </button>
+                    </div>
+
+                    <div class="mt-3 text-center">
+                        <small class="text-muted" style="font-size: 0.78rem;">
+                            <i class="bi bi-shield-lock me-1"></i> Agreed unit prices and tax rates snapshot permanently upon confirmation.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- JSON Data payload for Client-side Calculation Engine -->
+<script>
+    window.SUBSCRIBIFY_PRODUCTS = {
+        {% for p in products %}
+        "{{ p.pk }}": {
+            "name": "{{ p.name|escapejs }}",
+            "base_sales_price": "{{ p.base_sales_price }}",
+            "tax_rate": "{{ p.tax_rate }}",
+            "variants": [
+                {% for v in p.variants.all %}
+                {% if v.is_active %}
+                {
+                    "variant_id": {{ v.pk }},
+                    "attribute_name": "{{ v.attribute_name|escapejs }}",
+                    "attribute_value": "{{ v.attribute_value|escapejs }}",
+                    "additional_price": "{{ v.additional_price }}",
+                    "effective_price": "{{ v.effective_price }}",
+                    "sku": "{{ v.sku|escapejs }}"
+                }{% if not forloop.last %},{% endif %}
+                {% endif %}
+                {% endfor %}
+            ]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    window.SUBSCRIBIFY_DISCOUNTS = {
+        {% for d in discounts %}
+        "{{ d.code|escapejs }}": {
+            "name": "{{ d.name|escapejs }}",
+            "discount_type": "{{ d.discount_type }}",
+            "discount_value": "{{ d.discount_value }}",
+            "min_purchase_amount": "{{ d.min_purchase_amount }}",
+            "min_quantity": {{ d.min_quantity }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+{% load static %}
+<script src="{% static 'subscriptions/js/quotation_builder.js' %}"></script>
+{% endblock %}

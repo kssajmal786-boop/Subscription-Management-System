@@ -1,0 +1,135 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Subscriptions Lifecycle Manager - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Subscription Lifecycle Manager</h3>
+        <p class="text-muted mb-0 small">Monitor active contracts, recurring billing schedules, pause durations, and contract renewals</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'subscriptions:quotation_builder' %}" class="btn btn-primary-custom" id="btn_new_contract_quote">
+            <i class="bi bi-plus-lg me-1"></i> New Subscription via Quotation
+        </a>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card card-enterprise mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search }}" class="form-control border-start-0" placeholder="Search subscription number, customer name, email..." id="search_subscriptions">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select" id="filter_subscription_status">
+                    <option value="">All Subscription Statuses</option>
+                    {% for s_val, s_name in statuses %}
+                    <option value="{{ s_val }}" {% if selected_status == s_val %}selected{% endif %}>{{ s_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary-custom w-100" id="btn_filter_subscriptions">Filter</button>
+                <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-outline-custom">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Subscriptions Table -->
+<div class="card card-enterprise">
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Subscription #</th>
+                    <th>Customer</th>
+                    <th>Plan / Cycle</th>
+                    <th>Cycle Amount</th>
+                    <th>Next Billing Date</th>
+                    <th>Contract Expiration</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscriptions %}
+                <tr>
+                    <td>
+                        <a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="fw-bold text-decoration-none text-primary" id="sub_num_{{ sub.pk }}">
+                            {{ sub.subscription_number }}
+                        </a>
+                        {% if sub.quotation_number %}
+                        <div class="text-muted" style="font-size: 0.75rem;">From: {{ sub.quotation_number }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ sub.customer.company_name }}</div>
+                        <div class="small text-muted">{{ sub.customer.name }} &bull; {{ sub.customer.email }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-medium">{{ sub.plan.plan_name }}</div>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ sub.plan.billing_cycle }}</span>
+                    </td>
+                    <td class="fw-bold fs-6">
+                        ₹{{ sub.total_amount }}
+                    </td>
+                    <td>
+                        {% if sub.status == 'Paused' %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis">
+                            <i class="bi bi-pause-circle"></i> Halted (Paused)
+                        </span>
+                        {% elif sub.next_billing_date %}
+                            {% if sub.next_billing_date <= today %}
+                            <span class="badge bg-danger-subtle text-danger fw-bold">
+                                <i class="bi bi-exclamation-triangle"></i> Due: {{ sub.next_billing_date|date:"M d, Y" }}
+                            </span>
+                            {% else %}
+                            <span class="text-dark"><i class="bi bi-calendar3"></i> {{ sub.next_billing_date|date:"M d, Y" }}</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sub.expiry_date %}
+                        <span class="text-muted small">{{ sub.expiry_date|date:"M d, Y" }}</span>
+                        {% if sub.auto_renew %}
+                        <span class="badge bg-light text-success border ms-1" title="Auto-Renews">Auto</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge-status badge-{{ sub.status|lower }}">
+                            {{ sub.get_status_display }}
+                        </span>
+                        {% if sub.status == 'Paused' and sub.paused_at %}
+                        <div class="text-muted" style="font-size: 0.75rem;">Since {{ sub.paused_at|date:"M d" }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="btn btn-outline-custom btn-sm py-1 px-2" id="btn_manage_{{ sub.pk }}">
+                            Manage &rarr;
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-arrow-clockwise fs-1 d-block mb-2 text-secondary"></i>
+                        No subscriptions found. Confirm a quotation to create an active subscription.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

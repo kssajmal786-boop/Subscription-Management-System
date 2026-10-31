@@ -36,6 +36,7 @@ staticfiles/
 
 # Large archives
 *.zip
+!odoo.zip
 *.7z
 *.tar.gz
 

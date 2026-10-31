@@ -18,6 +18,8 @@ urlpatterns = [
     path("dashboard/", include("accounts.dashboard_urls", namespace="dashboard")),
     # DRF API
     path("api/billing/", include("billing.api_urls", namespace="billing_api")),
+    path("api/subscriptions/", include("subscriptions.api_urls")),
+    path("api/v1/", include("subscriptions.api_urls")),
 ]
 
 if settings.DEBUG:

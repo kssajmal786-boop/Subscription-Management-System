@@ -1,0 +1,197 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Dashboard - Subscribify Executive & Operations{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Subscription Operations Dashboard</h3>
+        <p class="text-muted mb-0 small">Real-time quote-to-cash lifecycle and recurring billing performance</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'subscriptions:product_create' %}" class="btn btn-outline-custom btn-sm" id="btn_dash_new_product">
+            <i class="bi bi-box-seam me-1"></i> New Product
+        </a>
+        <a href="{% url 'subscriptions:plan_create' %}" class="btn btn-outline-custom btn-sm" id="btn_dash_new_plan">
+            <i class="bi bi-calendar-range me-1"></i> New Plan
+        </a>
+        <a href="{% url 'subscriptions:quotation_builder' %}" class="btn btn-primary-custom btn-sm" id="btn_dash_build_quote">
+            <i class="bi bi-plus-lg me-1"></i> Build Quotation
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards Grid -->
+<div class="row g-3 mb-4">
+    <!-- Active Subscriptions -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card d-flex align-items-center justify-content-between">
+            <div>
+                <div class="kpi-title">Active Subscriptions</div>
+                <div class="kpi-value text-success" id="kpi_active_subs">{{ active_subs_count }}</div>
+                <div class="small text-muted mt-1">
+                    <span class="text-warning fw-semibold">{{ paused_subs_count }} Paused</span> &bull; 
+                    <span>{{ confirmed_subs_count }} Pending First Bill</span>
+                </div>
+            </div>
+            <div class="kpi-icon-wrap bg-success-subtle text-success">
+                <i class="bi bi-arrow-clockwise"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Recurring Revenue (MRR) -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card d-flex align-items-center justify-content-between">
+            <div>
+                <div class="kpi-title">Normalized MRR</div>
+                <div class="kpi-value text-primary" id="kpi_mrr">₹{{ mrr_estimate }}</div>
+                <div class="small text-muted mt-1">Active recurring baseline</div>
+            </div>
+            <div class="kpi-icon-wrap bg-primary-subtle text-primary">
+                <i class="bi bi-currency-rupee"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Quotations -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card d-flex align-items-center justify-content-between">
+            <div>
+                <div class="kpi-title">Open Quotations</div>
+                <div class="kpi-value text-info" id="kpi_open_quotes">{{ pending_quotations }}</div>
+                <div class="small text-muted mt-1">
+                    <a href="{% url 'subscriptions:quotation_tracker' %}" class="text-decoration-none text-info">View quotation pipeline &rarr;</a>
+                </div>
+            </div>
+            <div class="kpi-icon-wrap bg-info-subtle text-info">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Due for Billing -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card d-flex align-items-center justify-content-between">
+            <div>
+                <div class="kpi-title">Due Billing Queue</div>
+                <div class="kpi-value text-danger" id="kpi_due_billing">{{ due_billing_count }}</div>
+                <div class="small text-muted mt-1">Ready for automated invoice cron</div>
+            </div>
+            <div class="kpi-icon-wrap bg-danger-subtle text-danger">
+                <i class="bi bi-alarm"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Subscriptions Table -->
+    <div class="col-lg-8">
+        <div class="card card-enterprise">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="fw-bold">
+                    <i class="bi bi-list-check me-1 text-primary"></i> Recent Quotations & Subscriptions
+                </div>
+                <a href="{% url 'subscriptions:subscription_list' %}" class="btn btn-outline-custom btn-sm">
+                    View All &rarr;
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Customer</th>
+                            <th>Plan / Cycle</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in recent_subscriptions %}
+                        <tr>
+                            <td>
+                                {% if sub.is_quotation %}
+                                <a href="{% url 'subscriptions:quotation_detail' sub.pk %}" class="fw-bold text-decoration-none text-primary">
+                                    {{ sub.subscription_number }}
+                                </a>
+                                {% else %}
+                                <a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="fw-bold text-decoration-none text-primary">
+                                    {{ sub.subscription_number }}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ sub.customer.company_name }}</div>
+                                <div class="small text-muted">{{ sub.customer.email }}</div>
+                            </td>
+                            <td>
+                                <div>{{ sub.plan.plan_name }}</div>
+                                <span class="badge bg-light text-dark border">{{ sub.plan.billing_cycle }}</span>
+                            </td>
+                            <td class="fw-bold">
+                                ₹{{ sub.total_amount }}
+                            </td>
+                            <td>
+                                <span class="badge-status badge-{{ sub.status|lower }}">
+                                    {{ sub.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {% if sub.is_quotation %}
+                                <a href="{% url 'subscriptions:quotation_detail' sub.pk %}" class="btn btn-sm btn-outline-primary" id="btn_view_quote_{{ sub.pk }}">
+                                    Review
+                                </a>
+                                {% else %}
+                                <a href="{% url 'subscriptions:subscription_detail' sub.pk %}" class="btn btn-sm btn-outline-primary" id="btn_manage_sub_{{ sub.pk }}">
+                                    Manage
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No contracts or quotations found. Click "Build Quotation" to start.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lifecycle Audit Activity Stream -->
+    <div class="col-lg-4">
+        <div class="card card-enterprise">
+            <div class="card-header fw-bold">
+                <i class="bi bi-clock-history me-1 text-primary"></i> Lifecycle Audit Trail
+            </div>
+            <div class="card-body p-3">
+                <ul class="timeline mb-0">
+                    {% for h in recent_history %}
+                    <li class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-light text-dark border font-monospace small">{{ h.action }}</span>
+                            <span class="text-muted" style="font-size: 0.75rem;">{{ h.created_at|date:"M d, H:i" }}</span>
+                        </div>
+                        <div class="small fw-semibold text-dark">
+                            {{ h.subscription.subscription_number }}
+                        </div>
+                        <div class="text-muted small">
+                            {{ h.description }}
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="text-muted small text-center py-3">No activity logged yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

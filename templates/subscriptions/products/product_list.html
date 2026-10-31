@@ -1,0 +1,146 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}Product Catalog - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Product & Variant Catalog</h3>
+        <p class="text-muted mb-0 small">Manage recurring services, licenses, tiered variant prices and tax configurations</p>
+    </div>
+    <a href="{% url 'subscriptions:product_create' %}" class="btn btn-primary-custom" id="btn_new_product">
+        <i class="bi bi-plus-lg me-1"></i> Add Product
+    </a>
+</div>
+
+<!-- Filters Bar -->
+<div class="card card-enterprise mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search }}" class="form-control border-start-0" placeholder="Search by product name, HSN/SAC code..." id="search_products">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="type" class="form-select" id="filter_type">
+                    <option value="">All Product Types</option>
+                    {% for val, label in product_types %}
+                    <option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select" id="filter_status">
+                    <option value="">All Statuses</option>
+                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active Only</option>
+                    <option value="archived" {% if selected_status == 'archived' %}selected{% endif %}>Archived Only</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary-custom w-100" id="btn_filter_products">Filter</button>
+                <a href="{% url 'subscriptions:product_list' %}" class="btn btn-outline-custom">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Product Table -->
+<div class="card card-enterprise">
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Type</th>
+                    <th>Base Sales Price</th>
+                    <th>Default GST/Tax</th>
+                    <th>HSN / SAC</th>
+                    <th>Variants</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prod in products %}
+                <tr>
+                    <td>
+                        <a href="{% url 'subscriptions:product_detail' prod.pk %}" class="fw-bold text-decoration-none text-dark d-block">
+                            {{ prod.name }}
+                        </a>
+                        {% if prod.description %}
+                        <span class="text-muted small text-truncate d-inline-block" style="max-width: 280px;">{{ prod.description }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ prod.product_type }}</span>
+                    </td>
+                    <td class="fw-bold">
+                        ₹{{ prod.base_sales_price }}
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ prod.tax_rate }}%</span>
+                    </td>
+                    <td class="font-monospace text-muted small">
+                        {{ prod.hsn_sac_code|default:"—" }}
+                    </td>
+                    <td>
+                        {% if prod.variants.count > 0 %}
+                        <a href="{% url 'subscriptions:product_detail' prod.pk %}" class="badge bg-primary-subtle text-primary text-decoration-none">
+                            {{ prod.variants.count }} Variant{{ prod.variants.count|pluralize }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted small">Single SKU</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if prod.is_active %}
+                        <span class="badge bg-success-subtle text-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-danger-subtle text-danger">Archived</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-custom btn-sm" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'subscriptions:product_detail' prod.pk %}" id="btn_view_prod_{{ prod.pk }}">
+                                        <i class="bi bi-eye me-2 text-primary"></i> View & Manage Variants
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'subscriptions:product_update' prod.pk %}" id="btn_edit_prod_{{ prod.pk }}">
+                                        <i class="bi bi-pencil me-2 text-warning"></i> Edit Details
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'subscriptions:product_archive_toggle' prod.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item {% if prod.is_active %}text-danger{% else %}text-success{% endif %}">
+                                            <i class="bi {% if prod.is_active %}bi-archive{% else %}bi-arrow-counterclockwise{% endif %} me-2"></i>
+                                            {% if prod.is_active %}Archive Product{% else %}Restore Product{% endif %}
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-box-seam fs-1 d-block mb-2 text-secondary"></i>
+                        No products found matching criteria. Click "Add Product" to create one.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -16,6 +16,18 @@ from accounts.models import Customer, User
 # ---------------------------------------------------------------------------
 # Discount Rule Engine
 # ---------------------------------------------------------------------------
+class DiscountManager(models.Manager):
+    def create(self, **kwargs):
+        from django.utils import timezone
+        from datetime import timedelta
+        today = timezone.now().date()
+        if not kwargs.get("start_date"):
+            kwargs["start_date"] = today - timedelta(days=30)
+        if not kwargs.get("end_date"):
+            kwargs["end_date"] = today + timedelta(days=365)
+        return super().create(**kwargs)
+
+
 class Discount(models.Model):
     class DiscountType(models.TextChoices):
         FIXED = "Fixed", "Fixed Amount"
@@ -35,8 +47,8 @@ class Discount(models.Model):
     # Eligibility constraints
     min_purchase_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     min_quantity = models.PositiveIntegerField(default=1)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     max_usage_limit = models.PositiveIntegerField(null=True, blank=True, help_text="Global cap; blank = unlimited")
     used_count = models.PositiveIntegerField(default=0)
     max_uses_per_customer = models.PositiveIntegerField(null=True, blank=True)
@@ -49,6 +61,8 @@ class Discount(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = DiscountManager()
+
     class Meta:
         db_table = "discounts"
         indexes = [models.Index(fields=["is_active", "start_date", "end_date"])]
@@ -59,7 +73,13 @@ class Discount(models.Model):
 
     def is_valid_for_date(self, date=None):
         date = date or timezone.now().date()
-        return self.is_active and self.start_date <= date <= self.end_date
+        if not self.is_active:
+            return False
+        if self.start_date and date < self.start_date:
+            return False
+        if self.end_date and date > self.end_date:
+            return False
+        return True
 
     def usage_limit_reached(self):
         return self.max_usage_limit is not None and self.used_count >= self.max_usage_limit
@@ -97,6 +117,22 @@ class Discount(models.Model):
             if self.max_discount_cap:
                 amount = min(amount, self.max_discount_cap)
             return amount.quantize(Decimal("0.01"))
+
+    @property
+    def discount_id(self):
+        return self.pk
+
+    def is_valid_now(self):
+        return self.is_valid_for_date()
+
+    def calculate_discount(self, subtotal, quantity=1):
+        if not self.is_valid_now():
+            return Decimal("0.00")
+        if self.min_purchase_amount and subtotal < self.min_purchase_amount:
+            return Decimal("0.00")
+        if self.min_quantity and quantity < self.min_quantity:
+            return Decimal("0.00")
+        return self.calculate_discount_amount(subtotal)
 
 
 # ---------------------------------------------------------------------------

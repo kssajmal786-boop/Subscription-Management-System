@@ -1,0 +1,228 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}{{ product.name }} - Catalog Details - Subscribify{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h3 class="fw-bold mb-0">{{ product.name }}</h3>
+            {% if product.is_active %}
+            <span class="badge bg-success-subtle text-success">Active</span>
+            {% else %}
+            <span class="badge bg-danger-subtle text-danger">Archived</span>
+            {% endif %}
+        </div>
+        <p class="text-muted mb-0 small">Product ID: #{{ product.pk }} &bull; {{ product.product_type }} &bull; HSN/SAC: {{ product.hsn_sac_code|default:"N/A" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'subscriptions:product_update' product.pk %}" class="btn btn-outline-custom btn-sm" id="btn_edit_product">
+            <i class="bi bi-pencil me-1"></i> Edit Product
+        </a>
+        <a href="{% url 'subscriptions:product_list' %}" class="btn btn-outline-custom btn-sm">
+            &larr; Back to Catalog
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Product Overview Card -->
+    <div class="col-md-4">
+        <div class="card card-enterprise h-100">
+            <div class="card-header fw-bold">
+                <i class="bi bi-info-circle me-1 text-primary"></i> Base Product Pricing
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Base Sales Price</label>
+                    <span class="fs-4 fw-bold text-dark">₹{{ product.base_sales_price }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Default GST Tax Rate</label>
+                    <span class="fs-5 fw-semibold text-secondary">{{ product.tax_rate }}%</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Cost Price</label>
+                    <span class="fw-medium text-dark">₹{{ product.cost_price }}</span>
+                </div>
+                <div class="border-top pt-3">
+                    <label class="text-muted small d-block">Description</label>
+                    <p class="small text-secondary mb-0">{{ product.description|default:"No description provided." }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Variant Quick Form -->
+    <div class="col-md-8">
+        <div class="card card-enterprise">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="fw-bold">
+                    <i class="bi bi-diagram-3 me-1 text-primary"></i> Product Variants & Attribute Matrix
+                </div>
+                <span class="badge bg-primary-subtle text-primary">{{ product.variants.count }} Variant{{ product.variants.count|pluralize }}</span>
+            </div>
+            <div class="card-body">
+                <!-- Variant Table -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-custom mb-0">
+                        <thead>
+                            <tr>
+                                <th>Attribute</th>
+                                <th>Variant Value</th>
+                                <th>Price Add-on</th>
+                                <th>Effective Unit Price</th>
+                                <th>SKU</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in product.variants.all %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">{{ v.attribute_name }}</span></td>
+                                <td class="fw-bold text-primary">{{ v.attribute_value }}</td>
+                                <td>+₹{{ v.additional_price }}</td>
+                                <td class="fw-bold text-success fs-6">₹{{ v.effective_price }}</td>
+                                <td><code class="small">{{ v.sku }}</code></td>
+                                <td>
+                                    {% if v.is_active %}
+                                    <span class="badge bg-success-subtle text-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="{% url 'subscriptions:variant_update' v.pk %}" class="btn btn-outline-custom btn-sm py-0 px-2" title="Edit Variant">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'subscriptions:variant_toggle' v.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-custom btn-sm py-0 px-2 {% if v.is_active %}text-danger{% else %}text-success{% endif %}" title="Toggle Active">
+                                                <i class="bi {% if v.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    No variants defined yet. Add variants below (e.g. Odoo Enterprise vs Standard Edition).
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Add New Variant Form Card -->
+                <div class="bg-light p-3 rounded-3 border">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1 text-primary"></i> Add New Variant</h6>
+                    <form method="post" action="{% url 'subscriptions:variant_create' product.pk %}" id="add_variant_form">
+                        {% csrf_token %}
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Attribute Name <span class="text-danger">*</span></label>
+                                <input type="text" name="attribute_name" class="form-control form-control-sm" placeholder="e.g. Edition, Brand" required id="id_attribute_name">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Attribute Value <span class="text-danger">*</span></label>
+                                <input type="text" name="attribute_value" class="form-control form-control-sm" placeholder="e.g. Odoo Enterprise" required id="id_attribute_value">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">Add-on Price (₹)</label>
+                                <input type="number" step="0.01" name="additional_price" class="form-control form-control-sm" value="0.00" required id="id_additional_price">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">SKU <span class="text-danger">*</span></label>
+                                <input type="text" name="sku" class="form-control form-control-sm" placeholder="e.g. SOFT-ODOO" required id="id_sku">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary-custom btn-sm w-100" id="btn_submit_variant">
+                                    <i class="bi bi-plus-lg me-1"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Linked Subscription Plans -->
+<div class="card card-enterprise">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="fw-bold">
+            <i class="bi bi-calendar-check me-1 text-primary"></i> Configured Subscription Plans for {{ product.name }}
+        </div>
+        <a href="{% url 'subscriptions:plan_create' %}?product={{ product.pk }}" class="btn btn-outline-custom btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Create Plan for this Product
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Plan Name</th>
+                    <th>Linked Variant</th>
+                    <th>Billing Cycle</th>
+                    <th>Base Price</th>
+                    <th>Min Qty</th>
+                    <th>Pause Allowed</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in product.plans.all %}
+                <tr>
+                    <td>
+                        <a href="{% url 'subscriptions:plan_detail' plan.pk %}" class="fw-bold text-decoration-none text-dark">
+                            {{ plan.plan_name }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if plan.variant %}
+                        <span class="badge bg-light text-dark border">{{ plan.variant.attribute_value }}</span>
+                        {% else %}
+                        <span class="text-muted small">All / Base</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-secondary-subtle text-secondary">{{ plan.billing_cycle }}</span></td>
+                    <td class="fw-bold">₹{{ plan.base_price }}</td>
+                    <td>{{ plan.min_quantity }}</td>
+                    <td>
+                        {% if plan.allow_pause %}
+                        <span class="text-success"><i class="bi bi-check-circle"></i> Yes (Max {{ plan.max_pause_days }}d)</span>
+                        {% else %}
+                        <span class="text-muted"><i class="bi bi-x-circle"></i> No</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.is_active %}
+                        <span class="badge bg-success-subtle text-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-danger-subtle text-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'subscriptions:plan_update' plan.pk %}" class="btn btn-outline-custom btn-sm">
+                            Edit
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        No recurring plans created for this product yet. Click "Create Plan for this Product" to configure billing cycles.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ from django.utils import timezone
 from decimal import Decimal
 from catalog.models import Product, ProductVariant
 from accounts.models import Customer
+from billing.models import Discount
 
 
 class Plan(models.Model):
@@ -40,6 +41,18 @@ class Plan(models.Model):
 
     def __str__(self):
         return f"{self.plan_name} ({self.billing_cycle})"
+
+    @property
+    def plan_id(self):
+        return self.pk
+
+    @property
+    def default_duration(self):
+        return self.default_duration_months
+
+    @default_duration.setter
+    def default_duration(self, val):
+        self.default_duration_months = val
 
     def get_effective_price(self):
         if self.base_price and self.base_price > Decimal("0.00"):
@@ -79,12 +92,14 @@ class Subscription(models.Model):
         CLOSED = "Closed", "Closed"
         CANCELLED = "Cancelled", "Cancelled"
 
-    subscription_number = models.CharField(max_length=30, unique=True)
+    subscription_number = models.CharField(max_length=50, unique=True)
+    quotation_number = models.CharField(max_length=50, blank=True, null=True, help_text="Original quotation reference preserved upon conversion")
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="subscriptions")
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="subscriptions")
     applied_discount = models.ForeignKey(
         "billing.Discount", on_delete=models.SET_NULL, null=True, blank=True, related_name="subscriptions"
     )
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     quotation_validity_date = models.DateField(null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)
     next_billing_date = models.DateField(null=True, blank=True)
@@ -108,6 +123,36 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.subscription_number} – {self.customer}"
+
+    # Financial & Calculations Properties
+    @property
+    def subtotal(self):
+        """Sum of line item subtotals (quantity * unit_price)"""
+        total = sum(line.line_subtotal for line in self.lines.all())
+        return Decimal(str(total)).quantize(Decimal("0.01"))
+
+    @property
+    def total_tax(self):
+        """Sum of line item tax amounts"""
+        total = sum(line.tax_amount for line in self.lines.all())
+        return Decimal(str(total)).quantize(Decimal("0.01"))
+
+    @property
+    def total_amount(self):
+        """Subtotal - discount_amount + total_tax"""
+        sub = self.subtotal
+        disc = self.discount_amount or Decimal("0.00")
+        tax = self.total_tax
+        grand_total = max(Decimal("0.00"), sub - disc) + tax
+        return Decimal(str(grand_total)).quantize(Decimal("0.01"))
+
+    @property
+    def subscription_id(self):
+        return self.pk
+
+    @property
+    def is_active_subscription(self):
+        return self.status in [self.Status.ACTIVE, self.Status.PAUSED, self.Status.PAST_DUE]
 
     @classmethod
     def generate_number(cls):
@@ -156,6 +201,7 @@ class Subscription(models.Model):
         from dateutil.relativedelta import relativedelta
         self.expiry_date = today + relativedelta(months=duration_months)
         if self.subscription_number.startswith("QUO"):
+            self.quotation_number = self.subscription_number
             self.subscription_number = self.subscription_number.replace("QUO", "SUB")
         self.save()
 
@@ -222,4 +268,41 @@ class SubscriptionLine(models.Model):
     @property
     def line_total_with_tax(self):
         return self.line_subtotal + self.tax_amount
+
+    @property
+    def line_id(self):
+        return self.pk
+
+    @property
+    def line_total(self):
+        return self.line_total_with_tax
+
+
+class SubscriptionHistory(models.Model):
+    """
+    Immutable audit trail for tracking quotation and subscription lifecycle actions,
+    status changes, pause/resume shifts, and operational notes.
+    """
+    subscription = models.ForeignKey(
+        Subscription,
+        on_delete=models.CASCADE,
+        related_name="history"
+    )
+    action = models.CharField(max_length=100)
+    old_status = models.CharField(max_length=50, blank=True)
+    new_status = models.CharField(max_length=50)
+    description = models.TextField()
+    performed_by = models.CharField(max_length=100, default="System")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "subscription_history"
+        ordering = ["-created_at"]
+
+    @property
+    def history_id(self):
+        return self.pk
+
+    def __str__(self):
+        return f"[{self.created_at.strftime('%Y-%m-%d %H:%M')}] {self.subscription.subscription_number} - {self.action}"
 

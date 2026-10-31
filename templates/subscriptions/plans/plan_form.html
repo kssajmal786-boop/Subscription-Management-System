@@ -1,0 +1,113 @@
+{% extends 'subscriptions/base.html' %}
+
+{% block title %}{% if is_create %}Create Plan{% else %}Edit Plan: {{ plan.plan_name }}{% endif %} - Subscribify{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">{% if is_create %}Create Subscription Plan{% else %}Edit Plan{% endif %}</h3>
+                <p class="text-muted mb-0 small">Configure billing cycle, baseline pricing, pause limits, and grace periods</p>
+            </div>
+            <a href="{% url 'subscriptions:plan_list' %}" class="btn btn-outline-custom btn-sm">
+                &larr; Back to Plans
+            </a>
+        </div>
+
+        <div class="card card-enterprise">
+            <div class="card-body p-4">
+                <form method="post" id="plan_form">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Plan Name <span class="text-danger">*</span></label>
+                        {{ form.plan_name }}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Linked Product <span class="text-danger">*</span></label>
+                            {{ form.product }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Linked Variant (Optional)</label>
+                            {{ form.variant }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Billing Cycle <span class="text-danger">*</span></label>
+                            {{ form.billing_cycle }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Base Price per Cycle (₹) <span class="text-danger">*</span></label>
+                            {{ form.base_price }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Minimum Quantity <span class="text-danger">*</span></label>
+                            {{ form.min_quantity }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Default Duration (Cycles) <span class="text-danger">*</span></label>
+                            {{ form.default_duration }}
+                            <div class="form-text">e.g. 12 for 1 year of monthly billing.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Grace Period (Days)</label>
+                            {{ form.grace_period_days }}
+                            <div class="form-text">Days before suspension on overdue.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Max Billing Cycles (Optional)</label>
+                            {{ form.max_cycles }}
+                            <div class="form-text">Leave blank for indefinite recurrence.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4 p-3 bg-light rounded-3 border">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-1">
+                                {{ form.auto_renew_default }}
+                                <label class="form-check-label fw-semibold" for="{{ form.auto_renew_default.id_for_label }}">
+                                    Default Auto-Renew
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-1">
+                                {{ form.allow_pause }}
+                                <label class="form-check-label fw-semibold" for="{{ form.allow_pause.id_for_label }}">
+                                    Allow Customer Pause
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Max Pause Days</label>
+                            {{ form.max_pause_days }}
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                            Plan is Active for New Subscriptions
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'subscriptions:plan_list' %}" class="btn btn-outline-custom">Cancel</a>
+                        <button type="submit" class="btn btn-primary-custom" id="btn_save_plan">
+                            <i class="bi bi-check2 me-1"></i> Save Plan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -36,6 +36,14 @@ class Product(models.Model):
         """Base price – variants add on top of this."""
         return self.base_sales_price
 
+    @property
+    def active_variants_count(self):
+        return self.variants.filter(is_active=True).count()
+
+    @property
+    def product_id(self):
+        return self.pk
+
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
@@ -54,6 +62,10 @@ class ProductVariant(models.Model):
 
     def __str__(self):
         return f"{self.product.name} – {self.attribute_value}"
+
+    @property
+    def variant_id(self):
+        return self.pk
 
     @property
     def effective_price(self):

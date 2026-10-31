@@ -111,6 +111,34 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.save(update_fields=["failed_login_attempts", "locked_until"])
 
 
+class CustomerManager(models.Manager):
+    def create(self, **kwargs):
+        name = kwargs.pop("name", None)
+        email = kwargs.pop("email", None)
+        user = kwargs.get("user")
+        if not user and email:
+            first = name.split()[0] if name else ""
+            last = " ".join(name.split()[1:]) if name and len(name.split()) > 1 else ""
+            user, _ = User.objects.get_or_create(
+                email=email,
+                defaults={"first_name": first, "last_name": last, "role": User.Role.CUSTOMER}
+            )
+            user.set_password("Customer@1234")
+            user.save()
+            kwargs["user"] = user
+        elif not user:
+            import uuid
+            user = User.objects.create(
+                email=f"customer_{uuid.uuid4().hex[:8]}@subscribify.com",
+                role=User.Role.CUSTOMER,
+                first_name=name or kwargs.get("company_name", "Customer"),
+            )
+            user.set_password("Customer@1234")
+            user.save()
+            kwargs["user"] = user
+        return super().create(**kwargs)
+
+
 class Customer(models.Model):
     STATUS_CHOICES = [
         ("Active", "Active"),
@@ -119,6 +147,8 @@ class Customer(models.Model):
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="customer_profile")
     company_name = models.CharField(max_length=200, blank=True)
+
+    objects = CustomerManager()
     billing_address = models.TextField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
     gst_number = models.CharField(max_length=20, blank=True, verbose_name="GSTIN")
@@ -137,6 +167,18 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.company_name or self.user.get_full_name()
+
+    @property
+    def customer_id(self):
+        return self.pk
+
+    @property
+    def is_active(self):
+        return self.status == "Active"
+
+    @is_active.setter
+    def is_active(self, val):
+        self.status = "Active" if val else "Inactive"
 
     @property
     def display_name(self):
