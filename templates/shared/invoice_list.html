@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Invoices – Subscribify{% endblock %}
+{% block page_title %}Invoices & Billing{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>{% if user.role == 'Customer' %}My Invoices{% else %}Invoice Center{% endif %}</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">Invoices</span>
+    </div>
+  </div>
+  {% if user.role == 'Admin' %}
+  <div class="d-flex gap-2">
+    <a href="{% url 'reports:export_invoices' %}" class="btn btn-outline-light btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-4 p-3" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="search-bar">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search by invoice number or customer..."/>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        {% for code, label in status_choices %}
+        <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-grow-1" style="background:#6366f1;border:none;">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or status_filter %}
+      <a href="{% url 'billing:invoice_list' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Invoices Table -->
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Invoice #</th>
+            {% if user.role != 'Customer' %}
+            <th>Customer</th>
+            {% endif %}
+            <th>Invoice Date</th>
+            <th>Due Date</th>
+            <th>Total Amount</th>
+            <th>Balance Due</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 fw-bold">
+              <a href="{% url 'billing:invoice_detail' inv.pk %}" class="text-decoration-none text-light">
+                {{ inv.invoice_number }}
+              </a>
+            </td>
+            {% if user.role != 'Customer' %}
+            <td>
+              <div class="text-white fw-semibold">{{ inv.customer.display_name }}</div>
+              <div class="small text-secondary">{{ inv.customer.user.email }}</div>
+            </td>
+            {% endif %}
+            <td>{{ inv.invoice_date|date:"d M Y" }}</td>
+            <td>
+              <span class="{% if inv.is_overdue %}text-danger fw-bold{% else %}text-light{% endif %}">
+                {{ inv.due_date|date:"d M Y" }}
+              </span>
+            </td>
+            <td class="fw-bold text-white">₹{{ inv.total_amount|floatformat:2 }}</td>
+            <td class="fw-bold {% if inv.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ inv.balance_due|floatformat:2 }}
+            </td>
+            <td>
+              {% if inv.status == 'Paid' %}
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid</span>
+              {% elif inv.status == 'Partially_Paid' %}
+              <span class="badge bg-info"><i class="bi bi-pie-chart me-1"></i>Partial</span>
+              {% elif inv.status == 'Overdue' %}
+              <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+              {% elif inv.status == 'Cancelled' %}
+              <span class="badge bg-secondary"><i class="bi bi-slash-circle me-1"></i>Voided</span>
+              {% else %}
+              <span class="badge bg-warning text-dark">{{ inv.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group">
+                <a href="{% url 'billing:invoice_pdf' inv.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Download PDF">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+                <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-light" title="View details">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if inv.balance_due > 0 %}
+                <a href="{% url 'payments:record' inv.pk %}" class="btn btn-sm btn-primary" style="background:#6366f1;border:none;">
+                  <i class="bi bi-credit-card"></i> Pay
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-secondary">
+              <i class="bi bi-receipt fs-1 d-block mb-2 opacity-40"></i>
+              No invoices found matching criteria.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

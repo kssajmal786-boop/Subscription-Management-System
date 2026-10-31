@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Create Staff Member{% endblock %}
+{% block page_title %}New Staff Account{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-person-badge-fill text-primary me-2"></i>Staff Details</h2>
+        <span class="text-muted text-xs">Provision operational access for back-office operators</span>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="id_first_name">First Name</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.first_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="id_last_name">Last Name</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.last_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="id_email">Email Address</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="text-danger text-xs mt-1">{{ form.email.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="id_department">Department</label>
+              {{ form.department }}
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="id_designation">Designation</label>
+              {{ form.designation }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="id_password1">Password</label>
+            {{ form.password1 }}
+            <div class="text-muted text-xs mt-1">Min 9 chars with mixed characters.</div>
+            {% if form.password1.errors %}
+              <div class="text-danger text-xs mt-1">{{ form.password1.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" for="id_password2">Confirm Password</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+              <div class="text-danger text-xs mt-1">{{ form.password2.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <a href="/accounts/staff/" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check2-circle me-1"></i> Create Staff Member
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

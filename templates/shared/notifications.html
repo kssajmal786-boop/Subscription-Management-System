@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Notifications – Subscribify{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>System Notifications</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">Notifications</span>
+    </div>
+  </div>
+</div>
+
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white"><i class="bi bi-bell text-warning me-2"></i>Recent Activity & Alerts</h5>
+    <span class="badge bg-secondary">{{ notifications|length }} Total</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="list-group list-group-flush" style="background:transparent;">
+      {% for notif in notifications %}
+      <div class="list-group-item p-3 d-flex align-items-start gap-3" style="background:transparent;border-bottom:1px solid rgba(51,65,85,0.4);color:#e2e8f0;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);color:#6366f1;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="bi bi-info-circle fs-5"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-baseline">
+            <h6 class="mb-1 text-white fw-bold">{{ notif.title }}</h6>
+            <small class="text-secondary">{{ notif.created_at|date:"d M Y, H:i" }}</small>
+          </div>
+          <p class="mb-0 text-light small opacity-80">{{ notif.message }}</p>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-bell-slash fs-1 d-block mb-2 opacity-40"></i>
+        You have no notifications at this time.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

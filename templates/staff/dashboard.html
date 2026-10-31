@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Staff Dashboard – Subscribify{% endblock %}
+{% block page_title %}Staff Operations Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Operations Dashboard</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin:0;">Daily action queue for {{ request.user.name }}</p>
+  </div>
+  <a href="{% url 'subscriptions:create' %}" class="btn-primary-custom"><i class="bi bi-plus-circle"></i> New Quotation</a>
+</div>
+
+<div class="row g-3">
+  <!-- Expiring Quotations -->
+  <div class="col-xl-6 animate-in">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clock" style="color:var(--warning);"></i>
+        <h5>Expiring Quotations</h5>
+        <span class="nav-badge ms-auto">{{ expiring_quotations|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if expiring_quotations %}
+        <table class="table mb-0">
+          <thead><tr><th>Quotation</th><th>Customer</th><th>Expires</th><th></th></tr></thead>
+          <tbody>
+          {% for sub in expiring_quotations %}
+          <tr>
+            <td><span style="font-family:monospace;color:#818cf8;">{{ sub.subscription_number }}</span></td>
+            <td>{{ sub.customer.display_name }}</td>
+            <td style="color:#f59e0b;">{{ sub.quotation_validity_date }}</td>
+            <td><a href="{% url 'subscriptions:detail' sub.pk %}" class="btn-ghost" style="padding:3px 8px;font-size:11px;">Open</a></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-calendar-check"></i><p style="margin:0;">No expiring quotations</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Due Renewals -->
+  <div class="col-xl-6 animate-in">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-arrow-repeat" style="color:var(--primary);"></i>
+        <h5>Due for Renewal (Next 3 Days)</h5>
+        <span class="nav-badge ms-auto">{{ due_renewals|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if due_renewals %}
+        <table class="table mb-0">
+          <thead><tr><th>Subscription</th><th>Customer</th><th>Plan</th><th>Next Billing</th></tr></thead>
+          <tbody>
+          {% for sub in due_renewals %}
+          <tr>
+            <td><span style="font-family:monospace;color:#818cf8;">{{ sub.subscription_number }}</span></td>
+            <td>{{ sub.customer.display_name }}</td>
+            <td>{{ sub.plan.plan_name }}</td>
+            <td style="color:#6366f1;">{{ sub.next_billing_date }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-check-circle"></i><p style="margin:0;">No renewals due soon</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Invoices -->
+  <div class="col-xl-6 animate-in">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-receipt" style="color:var(--success);"></i>
+        <h5>Today's Invoices</h5>
+        <a href="{% url 'billing:invoice_list' %}" class="ms-auto btn-ghost" style="padding:4px 10px;font-size:12px;">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% if todays_invoices %}
+        <table class="table mb-0">
+          <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for inv in todays_invoices %}
+          <tr>
+            <td><a href="{% url 'billing:invoice_detail' inv.pk %}" style="color:#818cf8;font-family:monospace;">{{ inv.invoice_number }}</a></td>
+            <td>{{ inv.customer.display_name }}</td>
+            <td>{{ CURRENCY_SYMBOL }}{{ inv.total_amount|floatformat:2 }}</td>
+            <td>
+              <span class="status-badge badge-{{ inv.status|lower|replace:' ,_,true'|replace:'_,-' }}">{{ inv.status }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-receipt"></i><p style="margin:0;">No invoices generated today</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Overdue Follow-ups -->
+  <div class="col-xl-6 animate-in">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-exclamation-triangle" style="color:var(--danger);"></i>
+        <h5>Overdue Follow-ups</h5>
+        <a href="{% url 'reports:aging' %}" class="ms-auto btn-ghost" style="padding:4px 10px;font-size:12px;">Aging Report</a>
+      </div>
+      <div class="card-body p-0">
+        {% if overdue_invoices %}
+        <table class="table mb-0">
+          <thead><tr><th>Invoice</th><th>Customer</th><th>Balance</th><th>Overdue</th></tr></thead>
+          <tbody>
+          {% for inv in overdue_invoices %}
+          <tr>
+            <td><a href="{% url 'billing:invoice_detail' inv.pk %}" style="color:#ef4444;font-family:monospace;">{{ inv.invoice_number }}</a></td>
+            <td>{{ inv.customer.display_name }}</td>
+            <td style="color:#ef4444;">{{ CURRENCY_SYMBOL }}{{ inv.balance_due|floatformat:2 }}</td>
+            <td style="color:#94a3b8;font-size:12px;">{{ inv.overdue_days }} days</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-check-all"></i><p style="margin:0;">No overdue invoices</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

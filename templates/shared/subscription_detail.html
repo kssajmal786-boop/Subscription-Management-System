@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}Subscription {{ sub.subscription_number }} – Subscribify{% endblock %}
+{% block page_title %}Subscription {{ sub.subscription_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <div class="d-flex align-items-center gap-3">
+      <h1>{{ sub.subscription_number }}</h1>
+      {% if sub.status == 'Active' %}
+      <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Active</span>
+      {% elif sub.status == 'Quotation' %}
+      <span class="badge bg-warning text-dark fs-6"><i class="bi bi-hourglass-split me-1"></i>Quotation</span>
+      {% elif sub.status == 'Confirmed' %}
+      <span class="badge bg-primary fs-6"><i class="bi bi-check2-all me-1"></i>Confirmed</span>
+      {% elif sub.status == 'Paused' %}
+      <span class="badge bg-info fs-6"><i class="bi bi-pause-circle me-1"></i>Paused</span>
+      {% elif sub.status == 'Past_Due' %}
+      <span class="badge bg-danger fs-6"><i class="bi bi-exclamation-triangle me-1"></i>Past Due</span>
+      {% elif sub.status == 'Closed' %}
+      <span class="badge bg-secondary fs-6"><i class="bi bi-slash-circle me-1"></i>Closed</span>
+      {% elif sub.status == 'Cancelled' %}
+      <span class="badge bg-danger fs-6"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+      {% else %}
+      <span class="badge bg-secondary fs-6">{{ sub.status }}</span>
+      {% endif %}
+    </div>
+    <div class="breadcrumb mt-1">
+      <span class="breadcrumb-item">
+        {% if user.role == 'Customer' %}
+        <a href="{% url 'dashboard:customer' %}" class="text-secondary text-decoration-none">Dashboard</a>
+        {% else %}
+        <a href="{% url 'subscriptions:list' %}" class="text-secondary text-decoration-none">Subscriptions</a>
+        {% endif %}
+      </span>
+      <span class="breadcrumb-item active text-white-50">{{ sub.subscription_number }}</span>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    <!-- Customer Actions -->
+    {% if user.role == 'Customer' and sub.status == 'Quotation' %}
+    <a href="{% url 'subscriptions:accept' sub.pk %}" class="btn btn-success fw-bold px-3">
+      <i class="bi bi-check2-circle me-1"></i> Accept Quotation
+    </a>
+    {% endif %}
+
+    <!-- Staff/Admin Lifecycle Actions -->
+    {% if user.role != 'Customer' %}
+      {% if sub.status == 'Draft' or sub.status == 'Quotation' %}
+      <a href="{% url 'subscriptions:confirm' sub.pk %}" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i> Confirm Quotation
+      </a>
+      {% elif sub.status == 'Confirmed' %}
+      <a href="{% url 'subscriptions:activate' sub.pk %}" class="btn btn-success">
+        <i class="bi bi-lightning-charge me-1"></i> Activate & Bill First Invoice
+      </a>
+      {% endif %}
+    {% endif %}
+
+    <!-- Pause / Resume -->
+    {% if sub.status == 'Active' %}
+      {% if sub.plan.allow_pause %}
+      <a href="{% url 'subscriptions:pause' sub.pk %}" class="btn btn-warning text-dark">
+        <i class="bi bi-pause-fill me-1"></i> Pause
+      </a>
+      {% endif %}
+      <a href="{% url 'subscriptions:toggle_autorenew' sub.pk %}" class="btn btn-outline-light">
+        <i class="bi bi-arrow-repeat me-1"></i> Auto-Renew: {% if sub.auto_renew %}ON{% else %}OFF{% endif %}
+      </a>
+      {% if user.role != 'Customer' %}
+      <a href="{% url 'billing:generate_invoice' sub.pk %}" class="btn btn-outline-info">
+        <i class="bi bi-receipt-cutoff me-1"></i> Bill Invoice Now
+      </a>
+      {% endif %}
+    {% elif sub.status == 'Paused' %}
+    <a href="{% url 'subscriptions:resume' sub.pk %}" class="btn btn-success">
+      <i class="bi bi-play-fill me-1"></i> Resume (Shift Dates)
+    </a>
+    {% endif %}
+
+    {% if user.role != 'Customer' and sub.status != 'Closed' and sub.status != 'Cancelled' %}
+    <a href="{% url 'subscriptions:close' sub.pk %}" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to close this subscription?');">
+      <i class="bi bi-x-circle me-1"></i> Close
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Details Overview Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card p-3 h-100" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+      <div class="text-secondary small text-uppercase fw-semibold mb-1">Customer / Organization</div>
+      <div class="fw-bold text-white fs-5">{{ sub.customer.display_name }}</div>
+      <div class="small text-secondary mt-1"><i class="bi bi-envelope me-1"></i>{{ sub.customer.user.email }}</div>
+      {% if sub.customer.phone %}
+      <div class="small text-secondary"><i class="bi bi-telephone me-1"></i>{{ sub.customer.phone }}</div>
+      {% endif %}
+      {% if sub.customer.gst_number %}
+      <div class="small text-secondary"><i class="bi bi-receipt-cutoff me-1"></i>GST: {{ sub.customer.gst_number }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card p-3 h-100" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+      <div class="text-secondary small text-uppercase fw-semibold mb-1">Plan & Billing Interval</div>
+      <div class="fw-bold text-white fs-5">{{ sub.plan.name }}</div>
+      <div class="d-flex align-items-center gap-2 mt-1">
+        <span class="badge bg-info text-dark">{{ sub.plan.billing_interval_display }}</span>
+        <span class="text-secondary small">Base: ₹{{ sub.plan.price|floatformat:2 }}</span>
+      </div>
+      {% if sub.applied_discount %}
+      <div class="small text-success mt-2">
+        <i class="bi bi-tag-fill me-1"></i>Discount: {{ sub.applied_discount.name }} ({{ sub.applied_discount.code }})
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card p-3 h-100" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+      <div class="text-secondary small text-uppercase fw-semibold mb-1">Schedule & Dates</div>
+      <div class="small text-light"><strong>Started:</strong> {{ sub.start_date|date:"d M Y"|default:"Not Started" }}</div>
+      <div class="small text-light mt-1"><strong>Next Invoice:</strong> {{ sub.next_invoice_date|date:"d M Y"|default:"—" }}</div>
+      <div class="small text-light mt-1"><strong>End Date:</strong> {{ sub.end_date|date:"d M Y"|default:"Open-ended" }}</div>
+      {% if sub.status == 'Paused' and sub.paused_at %}
+      <div class="small text-warning mt-1"><i class="bi bi-pause-circle me-1"></i>Paused since: {{ sub.paused_at|date:"d M Y" }}</div>
+      {% endif %}
+      {% if sub.total_paused_days > 0 %}
+      <div class="small text-secondary mt-1">Total paused: {{ sub.total_paused_days }} days</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if sub.notes %}
+<div class="alert alert-dark border-secondary mb-4" style="background:rgba(30,41,59,0.5);border-color:#334155;">
+  <div class="small text-secondary fw-semibold text-uppercase mb-1"><i class="bi bi-info-circle me-1"></i>Notes</div>
+  <div class="small text-light">{{ sub.notes|linebreaksbr }}</div>
+</div>
+{% endif %}
+
+<!-- Subscription Line Items Table -->
+<div class="card mb-4" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white fw-bold"><i class="bi bi-list-check text-primary me-2"></i>Included Line Items</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Product / Item</th>
+            <th>Variant / Options</th>
+            <th>Quantity</th>
+            <th>Unit Price</th>
+            <th>Tax Rate</th>
+            <th class="text-end pe-4">Line Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 fw-bold text-white">{{ line.product.name }}</td>
+            <td class="text-secondary">{{ line.variant.attribute_value|default:"Standard" }}</td>
+            <td><span class="badge bg-secondary px-2 py-1">{{ line.quantity }}</span></td>
+            <td>₹{{ line.unit_price|floatformat:2 }}</td>
+            <td>{{ line.tax_rate }}%</td>
+            <td class="text-end pe-4 fw-bold text-white">₹{{ line.line_subtotal|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center py-4 text-secondary">No line items configured.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Invoices Generated -->
+<div class="card" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white fw-bold"><i class="bi bi-receipt text-info me-2"></i>Generated Invoices</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Invoice #</th>
+            <th>Billing Period</th>
+            <th>Due Date</th>
+            <th>Total Amount</th>
+            <th>Balance Due</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 fw-bold">
+              <a href="{% url 'billing:invoice_detail' inv.pk %}" class="text-decoration-none text-light">
+                {{ inv.invoice_number }}
+              </a>
+            </td>
+            <td>{{ inv.billing_period_start|date:"d M Y" }} – {{ inv.billing_period_end|date:"d M Y" }}</td>
+            <td>
+              <span class="{% if inv.is_overdue %}text-danger fw-bold{% else %}text-light{% endif %}">
+                {{ inv.due_date|date:"d M Y" }}
+              </span>
+            </td>
+            <td class="fw-bold text-white">₹{{ inv.total_amount|floatformat:2 }}</td>
+            <td class="fw-bold {% if inv.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ inv.balance_due|floatformat:2 }}
+            </td>
+            <td>
+              {% if inv.status == 'Paid' %}
+              <span class="badge bg-success">Paid</span>
+              {% elif inv.status == 'Partially_Paid' %}
+              <span class="badge bg-info">Partially Paid</span>
+              {% elif inv.status == 'Overdue' %}
+              <span class="badge bg-danger">Overdue</span>
+              {% else %}
+              <span class="badge bg-warning text-dark">{{ inv.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <a href="{% url 'billing:invoice_pdf' inv.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary me-1" title="Download PDF">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </a>
+              <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-light me-1" title="View Invoice">
+                <i class="bi bi-eye"></i> View
+              </a>
+              {% if inv.balance_due > 0 and inv.status != 'Draft' and inv.status != 'Cancelled' %}
+              <a href="{% url 'payments:record' inv.pk %}" class="btn btn-sm btn-outline-success" title="Record Payment">
+                <i class="bi bi-credit-card"></i> Pay
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-4 text-secondary">
+              No invoices generated for this subscription yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

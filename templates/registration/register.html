@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Create Account – Subscribify{% endblock %}
+
+{% block auth_content %}
+<div style="min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="position:fixed;inset:0;overflow:hidden;pointer-events:none;">
+    <div style="position:absolute;width:500px;height:500px;background:rgba(99,102,241,.1);border-radius:50%;top:-150px;right:-100px;filter:blur(80px);"></div>
+    <div style="position:absolute;width:300px;height:300px;background:rgba(14,165,233,.08);border-radius:50%;bottom:-80px;left:-80px;filter:blur(60px);"></div>
+  </div>
+
+  <div style="width:100%;max-width:520px;position:relative;z-index:1;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:56px;height:56px;background:linear-gradient(135deg,#6366f1,#0ea5e9);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 0 32px rgba(99,102,241,.4);">
+        <i class="bi bi-lightning-fill" style="font-size:24px;color:white;"></i>
+      </div>
+      <h1 style="font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#e2e8f0,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Join Subscribify</h1>
+      <p style="color:#94a3b8;font-size:13px;margin-top:4px;">Create your customer account</p>
+    </div>
+
+    <div style="background:rgba(30,41,59,.9);backdrop-filter:blur(16px);border:1px solid rgba(51,65,85,.8);border-radius:16px;padding:32px;box-shadow:0 24px 64px rgba(0,0,0,.5);">
+      <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Full Name *</label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="text-danger" style="font-size:12px;margin-top:4px;">{{ form.name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Email Address *</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="text-danger" style="font-size:12px;margin-top:4px;">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Company Name</label>
+            {{ form.company_name }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone</label>
+            {{ form.phone }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">GST / VAT Number</label>
+            {{ form.gst_number }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Password *</label>
+            {{ form.password }}
+            {% if form.password.errors %}<div class="text-danger" style="font-size:12px;margin-top:4px;">{{ form.password.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Confirm Password *</label>
+            {{ form.confirm_password }}
+            {% if form.confirm_password.errors %}<div class="text-danger" style="font-size:12px;margin-top:4px;">{{ form.confirm_password.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <!-- Password policy -->
+        <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:12px;margin-top:16px;font-size:12px;color:#94a3b8;">
+          <strong style="color:#a5b4fc;">Password must include:</strong>
+          <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <span>✓ At least 9 characters</span>
+            <span>✓ 1 uppercase letter</span>
+            <span>✓ 1 lowercase letter</span>
+            <span>✓ 1 digit</span>
+            <span>✓ 1 special character</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary-custom w-100 mt-4" style="padding:12px;font-size:15px;justify-content:center;">
+          <i class="bi bi-person-plus"></i> Create Account
+        </button>
+      </form>
+
+      <div style="text-align:center;margin-top:20px;font-size:13px;color:#64748b;">
+        Already have an account? <a href="{% url 'accounts:login' %}" style="color:#6366f1;font-weight:600;text-decoration:none;">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

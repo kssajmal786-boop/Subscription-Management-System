@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Staff Action Queue{% endblock %}
+{% block page_title %}Operations Daily Action Queue{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Expiring Quotations -->
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="card-title text-warning"><i class="bi bi-clock-history me-2"></i>Expiring Quotations</h2>
+          <span class="text-muted text-xs">Validity expiring soon</span>
+        </div>
+        <span class="badge badge-warning">{{ expiring_quotations|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if expiring_quotations %}
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Quotation</th>
+                <th>Customer</th>
+                <th>Expires</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for q in expiring_quotations %}
+              <tr>
+                <td><a href="/subscriptions/{{ q.pk }}/" class="text-accent fw-semibold">{{ q.subscription_number }}</a></td>
+                <td>{{ q.customer.company_name|default:q.customer.user.get_full_name }}</td>
+                <td class="text-warning text-xs">{{ q.quotation_validity_date }}</td>
+                <td>
+                  <a href="/subscriptions/{{ q.pk }}/confirm/" class="btn btn-xs btn-success" title="Confirm Quotation">
+                    <i class="bi bi-check-lg"></i> Confirm
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-check2-circle text-success" style="font-size: 2rem;"></i>
+          <p class="mt-2 mb-0">No quotations currently expiring.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Due Renewals -->
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="card-title text-info"><i class="bi bi-arrow-repeat me-2"></i>Due Renewals</h2>
+          <span class="text-muted text-xs">Subscriptions ready for renewal billing</span>
+        </div>
+        <span class="badge badge-info">{{ due_renewals|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if due_renewals %}
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Subscription</th>
+                <th>Plan</th>
+                <th>Due Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in due_renewals %}
+              <tr>
+                <td><a href="/subscriptions/{{ sub.pk }}/" class="text-accent fw-semibold">{{ sub.subscription_number }}</a></td>
+                <td>{{ sub.plan.plan_name }}</td>
+                <td class="text-info text-xs">{{ sub.next_billing_date }}</td>
+                <td>
+                  <form method="post" action="/billing/subscriptions/{{ sub.pk }}/generate-invoice/" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-xs btn-primary">
+                      <i class="bi bi-file-earmark-plus"></i> Bill
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-check2-circle text-success" style="font-size: 2rem;"></i>
+          <p class="mt-2 mb-0">All renewals are up-to-date.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Overdue Invoices Queue -->
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="card-title text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Overdue Invoices</h2>
+          <span class="text-muted text-xs">High-priority dunning follow-up</span>
+        </div>
+        <span class="badge badge-danger">{{ overdue_invoices|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if overdue_invoices %}
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Due</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for inv in overdue_invoices %}
+              <tr>
+                <td><a href="/billing/invoices/{{ inv.pk }}/" class="text-danger fw-semibold">{{ inv.invoice_number }}</a></td>
+                <td>{{ inv.customer.company_name|default:inv.customer.user.get_full_name }}</td>
+                <td class="text-danger text-xs fw-bold">₹{{ inv.balance_due|floatformat:2 }}</td>
+                <td>
+                  <a href="/billing/invoices/{{ inv.pk }}/payment/" class="btn btn-xs btn-outline-warning">
+                    <i class="bi bi-cash"></i> Pay
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
+          <p class="mt-2 mb-0">No overdue invoices needing follow-up.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

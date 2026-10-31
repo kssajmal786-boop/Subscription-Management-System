@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Subscribify – Automated Subscription & Recurring Billing Management System for Brightloop Software">
+  <title>{% block title %}Subscribify{% endblock %} | Brightloop Software</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Subscribify CSS -->
+  <link rel="stylesheet" href="/static/css/subscribify.css">
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- ─── Sidebar Layout ─────────────────────────────────────────────── -->
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <a href="/dashboard/" class="brand">
+        <div class="brand-icon">💰</div>
+        <div>
+          <div class="brand-text">Subscribify</div>
+          <div class="brand-sub">BILLING PLATFORM</div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <!-- Dashboard -->
+      <div class="nav-section">
+        <a href="/dashboard/" class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}">
+          <span class="nav-icon">📊</span> Dashboard
+        </a>
+      </div>
+
+      {% if user.role == 'Admin' or user.role == 'Staff' %}
+      <div class="nav-section">
+        <div class="nav-section-label">Operations</div>
+        <a href="/subscriptions/" class="nav-link {% if '/subscriptions/' in request.path and '/plans/' not in request.path %}active{% endif %}">
+          <span class="nav-icon">🔄</span> Subscriptions
+        </a>
+        <a href="/billing/invoices/" class="nav-link {% if '/billing/invoices/' in request.path %}active{% endif %}">
+          <span class="nav-icon">🧾</span> Invoices
+        </a>
+        <a href="/billing/payments/" class="nav-link {% if '/billing/payments/' in request.path %}active{% endif %}">
+          <span class="nav-icon">💳</span> Payments
+        </a>
+        <a href="/billing/invoices/overdue/" class="nav-link {% if 'overdue' in request.path %}active{% endif %}">
+          <span class="nav-icon">⚠️</span> Overdue
+        </a>
+        <a href="/accounts/customers/" class="nav-link {% if '/customers/' in request.path %}active{% endif %}">
+          <span class="nav-icon">👥</span> Customers
+        </a>
+      </div>
+      {% endif %}
+
+      {% if user.role == 'Admin' %}
+      <div class="nav-section">
+        <div class="nav-section-label">Configuration</div>
+        <a href="/catalog/products/" class="nav-link {% if '/catalog/' in request.path %}active{% endif %}">
+          <span class="nav-icon">📦</span> Products
+        </a>
+        <a href="/subscriptions/plans/" class="nav-link {% if '/plans/' in request.path %}active{% endif %}">
+          <span class="nav-icon">📋</span> Plans
+        </a>
+        <a href="/billing/discounts/" class="nav-link {% if '/discounts/' in request.path %}active{% endif %}">
+          <span class="nav-icon">🏷️</span> Discounts
+        </a>
+        <a href="/billing/reports/" class="nav-link {% if '/reports/' in request.path %}active{% endif %}">
+          <span class="nav-icon">📈</span> Reports
+        </a>
+        <a href="/accounts/staff/" class="nav-link {% if '/staff/' in request.path %}active{% endif %}">
+          <span class="nav-icon">🛡️</span> Staff
+        </a>
+      </div>
+      {% endif %}
+
+      {% if user.role == 'Customer' %}
+      <div class="nav-section">
+        <div class="nav-section-label">My Account</div>
+        <a href="/billing/portal/" class="nav-link {% if '/portal/' in request.path and 'invoice' not in request.path %}active{% endif %}">
+          <span class="nav-icon">🏠</span> My Dashboard
+        </a>
+        <a href="/billing/portal/invoices/" class="nav-link {% if '/portal/invoices/' in request.path %}active{% endif %}">
+          <span class="nav-icon">🧾</span> My Invoices
+        </a>
+        <a href="/billing/portal/notifications/" class="nav-link">
+          <span class="nav-icon">🔔</span> Notifications
+        </a>
+      </div>
+      {% endif %}
+    </nav>
+
+    <!-- User card -->
+    <div class="sidebar-user">
+      <div class="user-card">
+        <div class="user-avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ user.get_full_name }}</div>
+          <div class="user-role">{{ user.role }}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <a href="/accounts/profile/" class="btn btn-outline btn-sm" style="flex:1; justify-content:center;">
+          <i class="bi bi-person"></i> Profile
+        </a>
+        <a href="/accounts/logout/" class="btn btn-outline btn-sm" style="flex:1; justify-content:center;">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="topbar-actions">
+        {% block topbar_actions %}{% endblock %}
+        <button class="btn btn-outline btn-icon" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none" id="menu-toggle">
+          <i class="bi bi-list"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Flash messages -->
+    <div style="padding: 0 28px; margin-top: 16px;">
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+          <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}x-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Page content -->
+    <div class="page-content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- Auth layout (no sidebar) -->
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+  // Set Chart.js defaults for dark theme
+  Chart.defaults.color = '#9D8FC9';
+  Chart.defaults.borderColor = 'rgba(108, 60, 225, 0.12)';
+  Chart.defaults.font.family = 'Inter';
+
+  // Mobile sidebar toggle
+  const menuToggle = document.getElementById('menu-toggle');
+  if (menuToggle && window.innerWidth <= 768) {
+    menuToggle.style.display = 'flex';
+  }
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

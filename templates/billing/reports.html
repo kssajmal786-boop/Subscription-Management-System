@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Financial Analytics & Reports{% endblock %}
+{% block topbar_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'billing:financial_report_pdf' %}" class="btn btn-sm btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i> Export PDF</a>
+  <a href="{% url 'billing:export_invoices_csv' %}" class="btn btn-sm btn-outline"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Invoices CSV</a>
+  <a href="{% url 'billing:export_payments_csv' %}" class="btn btn-sm btn-outline"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Payments CSV</a>
+  <a href="{% url 'billing:export_revenue_csv' %}" class="btn btn-sm btn-outline"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Revenue CSV</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+  <!-- Monthly Revenue Trend Chart -->
+  <div class="col-12 col-xl-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="card-title"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Billed vs. Collected Revenue Trend</h2>
+          <span class="text-muted text-xs">Trailing 12-Month Performance</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <canvas id="monthlyTrendChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Methods Breakdown -->
+  <div class="col-12 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-pie-chart text-info me-2"></i>Payment Channels</h2>
+        <span class="text-muted text-xs">Collected revenue by channel</span>
+      </div>
+      <div class="card-body d-flex flex-column justify-content-center">
+        <canvas id="paymentMethodChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Breakdown Tables Row -->
+<div class="row g-4">
+  <!-- Revenue by Product -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-trophy-fill text-warning me-2"></i>Revenue by Product Service</h2>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th class="text-end">Revenue Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in product_revenue %}
+              <tr>
+                <td class="fw-semibold text-light">{{ p.product__name }}</td>
+                <td class="text-end font-monospace text-accent fw-bold">₹{{ p.total|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="text-center text-muted p-4">No product revenue recorded yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscriptions Status Distribution -->
+  <div class="col-12 col-md-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-distribute-vertical text-info me-2"></i>Subscription Status Distribution</h2>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th class="text-end">Active Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in status_dist %}
+              <tr>
+                <td>
+                  {% if s.status == 'Active' %}
+                    <span class="badge badge-success">Active</span>
+                  {% elif s.status == 'Quotation' %}
+                    <span class="badge badge-warning">Quotation</span>
+                  {% elif s.status == 'Paused' %}
+                    <span class="badge badge-secondary">Paused</span>
+                  {% elif s.status == 'Cancelled' %}
+                    <span class="badge badge-danger">Cancelled</span>
+                  {% else %}
+                    <span class="badge badge-info">{{ s.status }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-end font-monospace fw-bold text-light">{{ s.count }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="text-center text-muted p-4">No subscriptions registered.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ monthly_labels|json_script:"monthly-labels" }}
+{{ monthly_billed|json_script:"monthly-billed" }}
+{{ monthly_collected|json_script:"monthly-collected" }}
+{{ method_dist|json_script:"method-dist" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const labels = JSON.parse(document.getElementById('monthly-labels').textContent);
+  const billed = JSON.parse(document.getElementById('monthly-billed').textContent);
+  const collected = JSON.parse(document.getElementById('monthly-collected').textContent);
+  const methodDist = JSON.parse(document.getElementById('method-dist').textContent);
+
+  // Line Chart
+  const trendCtx = document.getElementById('monthlyTrendChart');
+  if (trendCtx) {
+    new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: labels.length ? labels : ['No Data'],
+        datasets: [
+          {
+            label: 'Billed (₹)',
+            data: billed.length ? billed : [0],
+            borderColor: '#6C3CE1',
+            backgroundColor: 'rgba(108, 60, 225, 0.15)',
+            tension: 0.35,
+            fill: true
+          },
+          {
+            label: 'Collected (₹)',
+            data: collected.length ? collected : [0],
+            borderColor: '#00F5D4',
+            backgroundColor: 'rgba(0, 245, 212, 0.15)',
+            tension: 0.35,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top', labels: { color: '#E2E8F0' } }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+
+  // Doughnut Chart for Payment Methods
+  const methodCtx = document.getElementById('paymentMethodChart');
+  if (methodCtx) {
+    const mLabels = methodDist.map(m => m.payment_method);
+    const mTotals = methodDist.map(m => parseFloat(m.total));
+    new Chart(methodCtx, {
+      type: 'doughnut',
+      data: {
+        labels: mLabels.length ? mLabels : ['No Payments'],
+        datasets: [{
+          data: mTotals.length ? mTotals : [1],
+          backgroundColor: ['#6C3CE1', '#00F5D4', '#FFB703', '#4895EF', '#FB8500']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#E2E8F0' } }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

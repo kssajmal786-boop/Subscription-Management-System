@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Staff Directory{% endblock %}
+{% block page_title %}Staff & Team Management{% endblock %}
+
+{% block topbar_actions %}
+<a href="/accounts/staff/create/" class="btn btn-primary btn-sm">
+  <i class="bi bi-person-plus-fill me-1"></i> Add Staff Member
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-people-fill text-primary me-2"></i>Staff Profiles</h2>
+    <span class="badge badge-primary">{{ staff|length }} Staff</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Employee Code</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Designation</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in staff %}
+          <tr>
+            <td class="font-monospace text-accent">{{ member.employee_code }}</td>
+            <td class="fw-semibold">{{ member.user.get_full_name }}</td>
+            <td class="text-muted">{{ member.user.email }}</td>
+            <td>{{ member.department|default:"—" }}</td>
+            <td>{{ member.designation|default:"Staff" }}</td>
+            <td>
+              {% if member.user.is_active %}
+                <span class="badge badge-success">Active</span>
+              {% else %}
+                <span class="badge badge-danger">Inactive</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted p-4">No staff members configured.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

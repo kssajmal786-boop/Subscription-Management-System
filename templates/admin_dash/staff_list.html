@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Staff Management – Subscribify{% endblock %}
+{% block page_title %}Staff Members{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Staff Members & Access</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">Staff</span>
+    </div>
+  </div>
+  <div>
+    <a href="{% url 'accounts:staff_create' %}" class="btn btn-primary" style="background:#6366f1;border:none;">
+      <i class="bi bi-person-plus me-1"></i> Add Staff Member
+    </a>
+  </div>
+</div>
+
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Employee</th>
+            <th>Emp Code</th>
+            <th>Department</th>
+            <th>Designation</th>
+            <th>Role</th>
+            <th>Active</th>
+            <th>Joined</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in staff_members %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">
+                  {{ member.user.name|first|upper }}
+                </div>
+                <div>
+                  <div class="fw-bold text-white">{{ member.user.name }}</div>
+                  <div class="small text-secondary">{{ member.user.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="font-monospace text-light">{{ member.employee_code }}</td>
+            <td class="text-secondary">{{ member.department|default:"Operations" }}</td>
+            <td class="text-light">{{ member.designation|default:"Billing Specialist" }}</td>
+            <td>
+              <span class="badge {% if member.user.role == 'Admin' %}bg-primary{% else %}bg-info text-dark{% endif %}">
+                {{ member.user.role }}
+              </span>
+            </td>
+            <td>
+              {% if member.is_active and member.user.is_active %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-danger">Suspended</span>
+              {% endif %}
+            </td>
+            <td class="text-secondary small">{{ member.created_at|date:"d M Y" }}</td>
+            <td class="text-end pe-4">
+              <div class="btn-group">
+                <a href="{% url 'accounts:staff_edit' member.pk %}" class="btn btn-sm btn-outline-info" title="Edit Staff">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                {% if member.user_id != request.user.id %}
+                <a href="{% url 'accounts:staff_toggle_active' member.pk %}" class="btn btn-sm {% if member.is_active and member.user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" title="Toggle Active">
+                  <i class="bi {% if member.is_active and member.user.is_active %}bi-person-x{% else %}bi-person-check{% endif %}"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center py-4 text-secondary">No staff members configured.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

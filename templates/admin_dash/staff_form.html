@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – Subscribify{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+      <div class="card-header p-4" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+        <h5 class="text-white mb-0"><i class="bi bi-person-badge text-primary me-2"></i>{{ title }}</h5>
+        <div class="text-secondary small mt-1">Manage staff credentials, assigned department, and role access.</div>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Employee Full Name *</label>
+              <input type="text" name="name" value="{{ form.name.value|default:'' }}" class="form-control" required/>
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Company Email Address *</label>
+              <input type="email" name="email" value="{{ form.email.value|default:'' }}" class="form-control" required/>
+              {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+            </div>
+
+            {% if is_create %}
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Temporary Password *</label>
+              <input type="password" name="password" class="form-control" required placeholder="Min 9 chars, mixed case, number, symbol"/>
+              {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">System Role *</label>
+              <select name="role" class="form-select">
+                <option value="Staff" {% if form.role.value == 'Staff' %}selected{% endif %}>Operations Staff</option>
+                <option value="Admin" {% if form.role.value == 'Admin' %}selected{% endif %}>System Administrator</option>
+              </select>
+              {% if form.role.errors %}<div class="text-danger small mt-1">{{ form.role.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-light small fw-semibold">Employee Code *</label>
+              <input type="text" name="employee_code" value="{{ form.employee_code.value|default:'' }}" class="form-control" placeholder="EMP-001" required/>
+              {% if form.employee_code.errors %}<div class="text-danger small mt-1">{{ form.employee_code.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-light small fw-semibold">Department</label>
+              <input type="text" name="department" value="{{ form.department.value|default:'' }}" class="form-control" placeholder="Billing / Support"/>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-light small fw-semibold">Designation</label>
+              <input type="text" name="designation" value="{{ form.designation.value|default:'' }}" class="form-control" placeholder="Billing Manager"/>
+            </div>
+
+            {% if not is_create %}
+            <div class="col-12">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}>
+                <label class="form-check-label text-light" for="id_is_active">Staff Account Active</label>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-4">
+            <a href="{% url 'accounts:staff_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4 fw-bold" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;">
+              <i class="bi bi-save me-1"></i> Save Staff Member
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

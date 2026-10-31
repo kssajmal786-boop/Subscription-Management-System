@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}User Profile – Subscribify{% endblock %}
+{% block page_title %}Profile Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
+      <div class="card-header p-4" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">
+            {{ user.name|first|upper }}
+          </div>
+          <div>
+            <h4 class="text-white mb-0">{{ user.name }}</h4>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <span class="badge bg-primary">{{ user.role }}</span>
+              <span class="text-secondary small">{{ user.email }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <h5 class="text-white mb-3"><i class="bi bi-person me-2 text-primary"></i>Personal & Account Information</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Full Name</label>
+              <input type="text" name="name" value="{{ form.name.value|default:user.name }}" class="form-control" required/>
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Email Address</label>
+              <input type="email" name="email" value="{{ form.email.value|default:user.email }}" class="form-control" required/>
+              {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          {% if customer_profile %}
+          <hr style="border-color:#334155;" class="my-4"/>
+          <h5 class="text-white mb-3"><i class="bi bi-building me-2 text-info"></i>Billing & Organization Details</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Company / Organization Name</label>
+              <input type="text" name="company_name" value="{{ customer_profile.company_name|default:'' }}" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">GSTIN / Tax ID</label>
+              <input type="text" name="gst_number" value="{{ customer_profile.gst_number|default:'' }}" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Contact Phone</label>
+              <input type="text" name="phone" value="{{ customer_profile.phone|default:'' }}" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">City</label>
+              <input type="text" name="city" value="{{ customer_profile.city|default:'' }}" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">State / Region</label>
+              <input type="text" name="state" value="{{ customer_profile.state|default:'' }}" class="form-control"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Postal / PIN Code</label>
+              <input type="text" name="pincode" value="{{ customer_profile.pincode|default:'' }}" class="form-control"/>
+            </div>
+            <div class="col-12">
+              <label class="form-label text-light small fw-semibold">Registered Billing Address</label>
+              <textarea name="billing_address" rows="3" class="form-control">{{ customer_profile.billing_address|default:'' }}</textarea>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="d-flex justify-content-between align-items-center pt-2">
+            <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-info">
+              <i class="bi bi-shield-lock me-1"></i> Change Password
+            </a>
+            <div class="d-flex gap-2">
+              <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary px-4" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;">
+                <i class="bi bi-save me-1"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

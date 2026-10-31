@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Payment Receipt {{ payment.payment_number }} – Subscribify{% endblock %}
+{% block page_title %}Payment {{ payment.payment_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Receipt #{{ payment.payment_number }}</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'payments:list' %}" class="text-secondary text-decoration-none">Payments</a></span>
+      <span class="breadcrumb-item active">{{ payment.payment_number }}</span>
+    </div>
+  </div>
+  <div>
+    <a href="{% url 'billing:invoice_detail' payment.invoice.pk %}" class="btn btn-outline-light">
+      <i class="bi bi-receipt me-1"></i> View Related Invoice
+    </a>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;">
+      <div class="p-4 p-md-5 text-center" style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(14,165,233,0.05));border-bottom:1px solid #334155;">
+        <div style="width:64px;height:64px;background:rgba(34,197,94,0.2);color:#22c55e;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:16px;">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <h3 class="text-white fw-bold mb-1">Payment Received</h3>
+        <div class="fs-1 fw-bold text-success my-2">₹{{ payment.amount|floatformat:2 }}</div>
+        <div class="badge bg-secondary px-3 py-2 fs-6">{{ payment.payment_method }}</div>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-3">
+          <div class="col-6">
+            <span class="text-secondary small text-uppercase fw-semibold d-block">Customer</span>
+            <span class="fw-bold text-white">{{ payment.customer.display_name }}</span>
+            <div class="small text-secondary">{{ payment.customer.user.email }}</div>
+          </div>
+          <div class="col-6 text-end">
+            <span class="text-secondary small text-uppercase fw-semibold d-block">Invoice Number</span>
+            <a href="{% url 'billing:invoice_detail' payment.invoice.pk %}" class="fw-bold text-info text-decoration-none">
+              {{ payment.invoice.invoice_number }}
+            </a>
+          </div>
+
+          <hr style="border-color:#334155;" class="my-3"/>
+
+          <div class="col-6">
+            <span class="text-secondary small text-uppercase fw-semibold d-block">Transaction / Reference ID</span>
+            <span class="font-monospace text-light">{{ payment.transaction_reference|default:"Not Provided" }}</span>
+          </div>
+          <div class="col-6 text-end">
+            <span class="text-secondary small text-uppercase fw-semibold d-block">Recorded Timestamp</span>
+            <span class="text-light">{{ payment.payment_date|date:"d M Y, H:i" }}</span>
+          </div>
+
+          <div class="col-6 mt-3">
+            <span class="text-secondary small text-uppercase fw-semibold d-block">Recorded By Staff</span>
+            <span class="text-light">{{ payment.recorded_by.name|default:"System Gateway" }}</span>
+          </div>
+          <div class="col-6 text-end mt-3">
+            <span class="text-secondary small text-uppercase fw-semibold d-block">Invoice Status</span>
+            <span class="badge {% if payment.invoice.status == 'Paid' %}bg-success{% else %}bg-info{% endif %}">
+              {{ payment.invoice.status }}
+            </span>
+          </div>
+
+          {% if payment.notes %}
+          <div class="col-12 mt-4">
+            <span class="text-secondary small text-uppercase fw-semibold d-block mb-1">Reconciliation Notes</span>
+            <div class="p-3 rounded" style="background:rgba(15,23,42,0.6);border:1px solid #334155;color:#e2e8f0;font-size:14px;">
+              {{ payment.notes }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

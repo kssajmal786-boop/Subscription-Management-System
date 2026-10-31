@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-file-earmark-diff-fill text-primary me-2"></i>Quotation Builder</h2>
+        <span class="text-muted text-xs">Create a draft quotation to confirm and convert into an active recurring subscription</span>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="id_customer">Customer</label>
+            {{ form.customer }}
+            {% if form.customer.errors %}
+              <div class="text-danger text-xs mt-1">{{ form.customer.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="id_plan">Subscription Plan</label>
+            {{ form.plan }}
+            {% if form.plan.errors %}
+              <div class="text-danger text-xs mt-1">{{ form.plan.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_quotation_validity_date">Quotation Validity Date</label>
+              {{ form.quotation_validity_date }}
+              {% if form.quotation_validity_date.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.quotation_validity_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_applied_discount">Discount Coupon (Optional)</label>
+              {{ form.applied_discount }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              {{ form.auto_renew }}
+              <label class="form-check-label ms-2" for="id_auto_renew">Enable Auto-Renewal</label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" for="id_notes">Internal Notes & Terms</label>
+            {{ form.notes }}
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <a href="/subscriptions/" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check2-circle me-1"></i> Generate Quotation
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

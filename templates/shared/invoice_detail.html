@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ invoice.invoice_number }} – Subscribify{% endblock %}
+{% block page_title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <div class="d-flex align-items-center gap-3">
+      <h1>{{ invoice.invoice_number }}</h1>
+      {% if invoice.status == 'Paid' %}
+      <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Paid</span>
+      {% elif invoice.status == 'Partially_Paid' %}
+      <span class="badge bg-info fs-6"><i class="bi bi-pie-chart me-1"></i>Partially Paid</span>
+      {% elif invoice.status == 'Overdue' %}
+      <span class="badge bg-danger fs-6"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+      {% elif invoice.status == 'Cancelled' %}
+      <span class="badge bg-secondary fs-6">Voided</span>
+      {% else %}
+      <span class="badge bg-warning text-dark fs-6">{{ invoice.status }}</span>
+      {% endif %}
+    </div>
+    <div class="breadcrumb mt-1">
+      <span class="breadcrumb-item"><a href="{% url 'billing:invoice_list' %}" class="text-secondary text-decoration-none">Invoices</a></span>
+      <span class="breadcrumb-item active">{{ invoice.invoice_number }}</span>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'billing:invoice_pdf' invoice.pk %}" target="_blank" class="btn btn-outline-light">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
+    </a>
+
+    {% if user.role != 'Customer' %}
+    <a href="{% url 'billing:invoice_email' invoice.pk %}" class="btn btn-outline-info">
+      <i class="bi bi-envelope me-1"></i> Send Email
+    </a>
+    {% if invoice.status != 'Paid' and invoice.status != 'Cancelled' %}
+    <a href="{% url 'billing:invoice_void' invoice.pk %}" class="btn btn-outline-danger" onclick="return confirm('Void this invoice?');">
+      <i class="bi bi-slash-circle me-1"></i> Void
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if invoice.balance_due > 0 and invoice.status != 'Cancelled' %}
+    <a href="{% url 'payments:record' invoice.pk %}" class="btn btn-success fw-bold px-3">
+      <i class="bi bi-credit-card me-1"></i> Record Payment
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Invoice Card Container -->
+<div class="card mb-4 animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+  <div class="p-4 p-md-5" style="border-bottom:1px solid #334155;">
+    <div class="row g-4 justify-content-between">
+      <div class="col-md-6">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#0ea5e9);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;">
+            <i class="bi bi-lightning-fill"></i>
+          </div>
+          <h4 class="mb-0 text-white fw-bold">{{ SITE_NAME|default:"Subscribify" }}</h4>
+        </div>
+        <p class="text-secondary small mb-0">Automated Subscription & Recurring Billing</p>
+        <p class="text-secondary small mb-0">GSTIN: 27AABCS1429B1Z0</p>
+      </div>
+
+      <div class="col-md-5 text-md-end">
+        <h5 class="text-white fw-bold mb-1">TAX INVOICE</h5>
+        <div class="text-secondary small">Invoice Date: <strong class="text-light">{{ invoice.invoice_date|date:"d M Y" }}</strong></div>
+        <div class="text-secondary small">Payment Due: <strong class="{% if invoice.is_overdue %}text-danger{% else %}text-light{% endif %}">{{ invoice.due_date|date:"d M Y" }}</strong></div>
+        <div class="text-secondary small">Billing Period: <strong class="text-light">{{ invoice.billing_period_start|date:"d M Y" }} – {{ invoice.billing_period_end|date:"d M Y" }}</strong></div>
+      </div>
+    </div>
+
+    <hr style="border-color:#334155;" class="my-4"/>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="text-secondary small text-uppercase fw-bold mb-1">Billed To</div>
+        <div class="fw-bold text-white fs-5">{{ invoice.customer.display_name }}</div>
+        <div class="text-light small mt-1">{{ invoice.customer.billing_address|default:"Address on file" }}</div>
+        <div class="text-secondary small">{{ invoice.customer.city }}{% if invoice.customer.state %}, {{ invoice.customer.state }}{% endif %}{% if invoice.customer.pincode %} - {{ invoice.customer.pincode }}{% endif %}</div>
+        {% if invoice.customer.gst_number %}
+        <div class="text-secondary small">GSTIN: <strong class="text-light">{{ invoice.customer.gst_number }}</strong></div>
+        {% endif %}
+      </div>
+
+      <div class="col-md-6 text-md-end">
+        <div class="text-secondary small text-uppercase fw-bold mb-1">Subscription Reference</div>
+        <div class="fw-semibold text-white">
+          <a href="{% url 'subscriptions:detail' invoice.subscription.pk %}" class="text-info text-decoration-none">
+            {{ invoice.subscription.subscription_number }}
+          </a>
+        </div>
+        <div class="text-secondary small">Plan: {{ invoice.subscription.plan.name }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lines Table -->
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Description</th>
+            <th>Variant</th>
+            <th class="text-center">Qty</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-end">Tax Rate</th>
+            <th class="text-end">Tax Amt</th>
+            <th class="text-end pe-4">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4">
+              <div class="fw-bold text-white">{{ line.product.name }}</div>
+              <div class="small text-secondary">{{ line.description }}</div>
+            </td>
+            <td class="text-secondary">{{ line.variant.attribute_value|default:"Standard" }}</td>
+            <td class="text-center text-light">{{ line.quantity }}</td>
+            <td class="text-end text-light">₹{{ line.unit_price|floatformat:2 }}</td>
+            <td class="text-end text-light">{{ line.tax_rate }}%</td>
+            <td class="text-end text-light">₹{{ line.tax_amount|floatformat:2 }}</td>
+            <td class="text-end pe-4 fw-bold text-white">₹{{ line.line_total|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totals Summary -->
+    <div class="p-4" style="background:rgba(15,23,42,0.4);border-top:1px solid #334155;">
+      <div class="row justify-content-end">
+        <div class="col-md-5">
+          <div class="d-flex justify-content-between py-1 text-light">
+            <span class="text-secondary">Subtotal</span>
+            <span>₹{{ invoice.subtotal|floatformat:2 }}</span>
+          </div>
+          {% if invoice.discount_amount > 0 %}
+          <div class="d-flex justify-content-between py-1 text-success">
+            <span>Discount Applied</span>
+            <span>-₹{{ invoice.discount_amount|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          <div class="d-flex justify-content-between py-1 text-light">
+            <span class="text-secondary">GST / Tax Amount</span>
+            <span>₹{{ invoice.tax_amount|floatformat:2 }}</span>
+          </div>
+          <hr style="border-color:#334155;" class="my-2"/>
+          <div class="d-flex justify-content-between py-1 fs-5 fw-bold text-white">
+            <span>Total Invoiced</span>
+            <span>₹{{ invoice.total_amount|floatformat:2 }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 text-success fw-semibold">
+            <span>Amount Paid</span>
+            <span>₹{{ invoice.amount_paid|floatformat:2 }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-2 fs-5 fw-bold {% if invoice.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+            <span>Balance Due</span>
+            <span>₹{{ invoice.balance_due|floatformat:2 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payments Ledger -->
+<div class="card" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white"><i class="bi bi-credit-card text-success me-2"></i>Payment Reconciliation History</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Receipt #</th>
+            <th>Date</th>
+            <th>Method</th>
+            <th>Transaction Ref</th>
+            <th>Amount Paid</th>
+            <th>Recorded By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pmt in payments %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 fw-bold text-white">{{ pmt.payment_number }}</td>
+            <td>{{ pmt.payment_date|date:"d M Y, H:i" }}</td>
+            <td><span class="badge bg-secondary">{{ pmt.payment_method }}</span></td>
+            <td class="text-secondary font-monospace">{{ pmt.transaction_reference|default:"—" }}</td>
+            <td class="fw-bold text-success">₹{{ pmt.amount|floatformat:2 }}</td>
+            <td class="text-secondary">{{ pmt.recorded_by.name|default:"Self / Gateway" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-secondary">
+              No payments recorded for this invoice yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

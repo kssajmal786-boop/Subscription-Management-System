@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Payment Ledger{% endblock %}
+{% block page_title %}Payment Ledger & Transactions{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'billing:export_payments_csv' %}" class="btn btn-outline btn-sm">
+  <i class="bi bi-download"></i> Export CSV
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filters Bar -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-12 col-md-3">
+        {{ form.status }}
+      </div>
+      <div class="col-12 col-md-3">
+        {{ form.method }}
+      </div>
+      <div class="col-12 col-md-2">
+        {{ form.date_from }}
+      </div>
+      <div class="col-12 col-md-2">
+        {{ form.date_to }}
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100">
+          <i class="bi bi-funnel-fill"></i> Filter
+        </button>
+        <a href="/billing/payments/" class="btn btn-sm btn-outline">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-credit-card-2-front text-primary me-2"></i>Recorded Payments</h2>
+    <span class="badge badge-primary">{{ page.paginator.count }} Total Payments</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Payment ID</th>
+            <th>Invoice</th>
+            <th>Customer</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Reference</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in page %}
+          <tr>
+            <td class="font-monospace text-accent fw-bold">{{ p.payment_number }}</td>
+            <td>
+              <a href="/billing/invoices/{{ p.invoice.pk }}/" class="text-light text-decoration-underline font-monospace text-xs">
+                {{ p.invoice.invoice_number }}
+              </a>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ p.customer.company_name|default:p.customer.user.get_full_name }}</div>
+            </td>
+            <td class="fw-bold font-monospace text-success" style="font-size: 1rem;">
+              ₹{{ p.amount|floatformat:2 }}
+            </td>
+            <td>
+              <span class="badge badge-info">{{ p.get_payment_method_display }}</span>
+            </td>
+            <td class="text-xs font-monospace text-muted">{{ p.transaction_reference|default:"—" }}</td>
+            <td class="text-xs text-muted">{{ p.payment_date }}</td>
+            <td>
+              {% if p.status == 'Success' %}
+                <span class="badge badge-success">Success</span>
+              {% elif p.status == 'Pending' %}
+                <span class="badge badge-warning">Pending</span>
+              {% else %}
+                <span class="badge badge-danger">{{ p.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/billing/payments/{{ p.pk }}/receipt/" class="btn btn-xs btn-outline" title="Download Receipt">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted p-5">
+              <i class="bi bi-cash-stack" style="font-size: 2rem;"></i>
+              <p class="mt-2 mb-0">No payment transactions found.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if page.has_other_pages %}
+  <div class="card-footer d-flex justify-content-between align-items-center bg-transparent border-top" style="border-color: var(--border-color) !important;">
+    <div class="text-xs text-muted">
+      Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}
+    </div>
+    <div class="d-flex gap-1">
+      {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}" class="btn btn-xs btn-outline">Previous</a>
+      {% endif %}
+      <span class="btn btn-xs btn-outline disabled">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}" class="btn btn-xs btn-outline">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

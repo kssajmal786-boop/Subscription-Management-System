@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Product Catalog{% endblock %}
+{% block page_title %}Product Catalog & Variants{% endblock %}
+
+{% block topbar_actions %}
+<a href="/catalog/products/create/" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-circle me-1"></i> Add Product
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  {% for product in products %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-start">
+        <div>
+          <span class="badge badge-primary mb-2">{{ product.get_product_type_display }}</span>
+          <h2 class="card-title text-primary-light mb-1">{{ product.name }}</h2>
+          <span class="text-muted text-xs">HSN/SAC: {{ product.hsn_sac_code|default:"—" }}</span>
+        </div>
+        <div>
+          {% if product.is_active %}
+            <span class="badge badge-success">Active</span>
+          {% else %}
+            <span class="badge badge-danger">Inactive</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <p class="text-muted text-sm mb-3">{{ product.description|default:"No description provided." }}</p>
+        
+        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded" style="background: rgba(255,255,255,0.03);">
+          <div>
+            <div class="text-muted text-xs">Base Price</div>
+            <div class="fw-bold text-accent" style="font-size: 1.15rem;">₹{{ product.base_sales_price|floatformat:2 }}</div>
+          </div>
+          <div>
+            <div class="text-muted text-xs">Tax Rate (GST)</div>
+            <div class="fw-bold text-light">{{ product.tax_rate }}%</div>
+          </div>
+        </div>
+
+        <!-- Variants Section -->
+        <div class="border-top pt-3" style="border-color: var(--border-color) !important;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-xs text-uppercase fw-bold text-muted">Variants ({{ product.variants.count }})</span>
+            <a href="/catalog/products/{{ product.pk }}/variants/create/" class="btn btn-xs btn-outline-info">
+              <i class="bi bi-plus"></i> Add Variant
+            </a>
+          </div>
+          
+          {% if product.variants.all %}
+            <ul class="list-unstyled mb-0">
+              {% for v in product.variants.all %}
+              <li class="d-flex justify-content-between align-items-center py-1 text-xs border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+                <span>
+                  <strong class="text-light">{{ v.attribute_name }}:</strong> {{ v.attribute_value }}
+                  <span class="text-muted ms-1">({{ v.sku }})</span>
+                </span>
+                <div>
+                  <span class="text-accent fw-bold me-2">₹{{ v.effective_price|floatformat:2 }}</span>
+                  <a href="/catalog/variants/{{ v.pk }}/edit/" class="text-muted hover-accent"><i class="bi bi-pencil"></i></a>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="text-xs text-muted fst-italic">No variants defined (uses base product).</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center bg-transparent border-top" style="border-color: var(--border-color) !important;">
+        <form method="post" action="/catalog/products/{{ product.pk }}/toggle/" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-xs {% if product.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+            {% if product.is_active %}<i class="bi bi-slash-circle me-1"></i>Deactivate{% else %}<i class="bi bi-check-circle me-1"></i>Activate{% endif %}
+          </button>
+        </form>
+        <a href="/catalog/products/{{ product.pk }}/edit/" class="btn btn-xs btn-outline">
+          <i class="bi bi-pencil-square me-1"></i> Edit Product
+        </a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="card p-5 text-center text-muted">
+      <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
+      <h3 class="mt-3">No Products Found</h3>
+      <p>Start by creating software services or consumable product items in your catalog.</p>
+      <div class="mt-2">
+        <a href="/catalog/products/create/" class="btn btn-primary">Add First Product</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-tag-fill text-primary me-2"></i>Discount Coupon Configuration</h2>
+        <span class="text-muted text-xs">Set redemption rules, percentages, caps, and eligibility limits</span>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_code">Coupon Code (Uppercase)</label>
+              {{ form.code }}
+              {% if form.code.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.code.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="form-label" for="id_name">Campaign Name</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.name.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_discount_type">Type</label>
+              {{ form.discount_type }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_discount_value">Value (% or Flat ₹)</label>
+              {{ form.discount_value }}
+              {% if form.discount_value.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.discount_value.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_max_discount_cap">Max Cap (₹, for % type)</label>
+              {{ form.max_discount_cap }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_min_purchase_amount">Min Purchase Amount (₹)</label>
+              {{ form.min_purchase_amount }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_min_quantity">Min Items Quantity</label>
+              {{ form.min_quantity }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_start_date">Start Date</label>
+              {{ form.start_date }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_end_date">End Date</label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.end_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_max_usage_limit">Global Max Redemptions</label>
+              {{ form.max_usage_limit }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_max_uses_per_customer">Max Uses Per Customer</label>
+              {{ form.max_uses_per_customer }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_applicable_cycles">Billing Cadence</label>
+              {{ form.applicable_cycles }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_applicable_product">Product Scope</label>
+              {{ form.applicable_product }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_applicable_plan">Plan Scope</label>
+              {{ form.applicable_plan }}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              {{ form.is_active }}
+              <label class="form-check-label ms-2" for="id_is_active">Campaign Active</label>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <a href="/billing/discounts/" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Save Discount Rule
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Executive Dashboard{% endblock %}
+
+{% block topbar_actions %}
+<a href="/billing/reports/" class="btn btn-outline btn-sm"><i class="bi bi-graph-up"></i> Reports</a>
+<a href="/subscriptions/create/" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New Subscription</a>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card kpi-purple">
+    <span class="kpi-icon">👥</span>
+    <div class="kpi-label">Total Customers</div>
+    <div class="kpi-value">{{ total_customers|default:"0" }}</div>
+    <div class="kpi-sub">Active accounts</div>
+  </div>
+
+  <div class="kpi-card kpi-green">
+    <span class="kpi-icon">🔄</span>
+    <div class="kpi-label">Active Subscriptions</div>
+    <div class="kpi-value">{{ active_subscriptions|default:"0" }}</div>
+    <div class="kpi-sub">Currently active</div>
+  </div>
+
+  <div class="kpi-card kpi-blue">
+    <span class="kpi-icon">📈</span>
+    <div class="kpi-label">Monthly Recurring Revenue</div>
+    <div class="kpi-value">₹{{ mrr|floatformat:0|default:"0" }}</div>
+    <div class="kpi-sub">Normalized MRR</div>
+  </div>
+
+  <div class="kpi-card kpi-teal">
+    <span class="kpi-icon">✅</span>
+    <div class="kpi-label">Collected Revenue</div>
+    <div class="kpi-value">₹{{ collected_revenue|floatformat:0|default:"0" }}</div>
+    <div class="kpi-sub">All-time verified payments</div>
+  </div>
+
+  <div class="kpi-card kpi-amber">
+    <span class="kpi-icon">⏳</span>
+    <div class="kpi-label">Pending Receivables</div>
+    <div class="kpi-value">₹{{ pending_receivables|floatformat:0|default:"0" }}</div>
+    <div class="kpi-sub">Awaiting payment</div>
+  </div>
+
+  <div class="kpi-card kpi-red">
+    <span class="kpi-icon">⚠️</span>
+    <div class="kpi-label">Overdue Invoices</div>
+    <div class="kpi-value">{{ overdue_count|default:"0" }}</div>
+    <div class="kpi-sub">₹{{ overdue_amount|floatformat:0|default:"0" }} at risk</div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-bottom:24px;">
+  <!-- Revenue Chart -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📊 Monthly Revenue Trend (12 Months)</span>
+      <a href="/billing/reports/" class="btn btn-outline btn-sm">Full Report</a>
+    </div>
+    <div class="card-body">
+      <div class="chart-container">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚡ Quick Actions</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a href="/subscriptions/create/" class="btn btn-primary" style="justify-content:center;">
+          <i class="bi bi-plus-circle"></i> New Quotation
+        </a>
+        <a href="/billing/invoices/" class="btn btn-outline" style="justify-content:center;">
+          <i class="bi bi-file-earmark-text"></i> View All Invoices
+        </a>
+        <a href="/billing/invoices/overdue/" class="btn btn-outline" style="justify-content:center;">
+          <i class="bi bi-exclamation-triangle"></i> Overdue Invoices
+        </a>
+        <a href="/billing/payments/" class="btn btn-outline" style="justify-content:center;">
+          <i class="bi bi-credit-card"></i> Payment Ledger
+        </a>
+        <a href="/catalog/products/" class="btn btn-outline" style="justify-content:center;">
+          <i class="bi bi-box"></i> Manage Products
+        </a>
+        <a href="/billing/discounts/" class="btn btn-outline" style="justify-content:center;">
+          <i class="bi bi-tag"></i> Discount Rules
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Invoices -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🧾 Recent Invoices</span>
+    <a href="/billing/invoices/" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Balance Due</th>
+          <th>Status</th>
+          <th>Due Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="recent-invoices">
+        <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">
+          Loading recent invoices...
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Revenue trend chart
+const labels = {{ monthly_labels|safe }};
+const billedData = {{ monthly_billed|safe }};
+const collectedData = {{ monthly_collected|safe }};
+
+new Chart(document.getElementById('revenueChart'), {
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Billed',
+        data: billedData,
+        backgroundColor: 'rgba(108, 60, 225, 0.4)',
+        borderColor: '#6C3CE1',
+        borderWidth: 2,
+        borderRadius: 5,
+      },
+      {
+        label: 'Collected',
+        data: collectedData,
+        backgroundColor: 'rgba(16, 185, 129, 0.4)',
+        borderColor: '#10B981',
+        borderWidth: 2,
+        borderRadius: 5,
+        type: 'line',
+        fill: false,
+        tension: 0.4,
+        pointBackgroundColor: '#10B981',
+        pointRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { color: '#9D8FC9', font: { size: 12 } } },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `₹${ctx.parsed.y?.toLocaleString('en-IN') || 0}`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(108,60,225,0.08)' }, ticks: { color: '#5E5880' } },
+      y: {
+        grid: { color: 'rgba(108,60,225,0.08)' },
+        ticks: { color: '#5E5880', callback: (v) => `₹${v.toLocaleString('en-IN')}` }
+      }
+    }
+  }
+});
+
+// Load recent invoices via API
+fetch('/api/billing/invoices/?page_size=5')
+  .then(r => r.json())
+  .then(data => {
+    const tbody = document.getElementById('recent-invoices');
+    const invoices = data.results || [];
+    if (!invoices.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No invoices yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = invoices.map(inv => {
+      const statusMap = {
+        'Draft': 'badge-draft', 'Confirmed': 'badge-confirmed',
+        'Partially_Paid': 'badge-partial', 'Paid': 'badge-paid',
+        'Overdue': 'badge-overdue', 'Cancelled': 'badge-cancelled'
+      };
+      const badge = statusMap[inv.status] || 'badge-draft';
+      return `<tr>
+        <td><a href="/billing/invoices/${inv.id}/" style="color:var(--primary-light);font-weight:600;">${inv.invoice_number}</a></td>
+        <td>${inv.customer_name}</td>
+        <td class="amount">₹${parseFloat(inv.total_amount).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+        <td class="amount ${inv.balance_due > 0 ? 'amount-due' : 'amount-paid'}">₹${parseFloat(inv.balance_due).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+        <td><span class="badge ${badge}">${inv.status.replace('_',' ')}</span></td>
+        <td>${inv.due_date}</td>
+        <td>
+          <a href="/billing/invoices/${inv.id}/" class="btn btn-outline btn-sm btn-icon"><i class="bi bi-eye"></i></a>
+          <a href="/billing/invoices/${inv.id}/pdf/" class="btn btn-outline btn-sm btn-icon"><i class="bi bi-download"></i></a>
+        </td>
+      </tr>`;
+    }).join('');
+  })
+  .catch(() => {
+    document.getElementById('recent-invoices').innerHTML =
+      '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No data available</td></tr>';
+  });
+</script>
+{% endblock %}

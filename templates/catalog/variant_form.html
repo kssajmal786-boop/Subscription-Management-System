@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{% if variant %}Edit Variant{% else %}Add Variant{% endif %}{% endblock %}
+{% block page_title %}{% if variant %}Edit Variant for {{ product.name }}{% else %}New Variant for {{ product.name }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-diagram-3-fill text-info me-2"></i>Variant Configuration</h2>
+        <span class="text-muted text-xs">Base Product: <strong class="text-light">{{ product.name }}</strong> (Base: ₹{{ product.base_sales_price|floatformat:2 }})</span>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_attribute_name">Attribute Name (e.g. Edition, Tier, Storage)</label>
+              {{ form.attribute_name }}
+              {% if form.attribute_name.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.attribute_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_attribute_value">Attribute Value (e.g. Enterprise, Pro, 100GB)</label>
+              {{ form.attribute_value }}
+              {% if form.attribute_value.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.attribute_value.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_additional_price">Additional Price Delta (₹)</label>
+              {{ form.additional_price }}
+              <div class="text-muted text-xs mt-1">Effective Price = Base + Delta</div>
+              {% if form.additional_price.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.additional_price.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_sku">SKU Code</label>
+              {{ form.sku }}
+              {% if form.sku.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.sku.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <a href="/catalog/products/" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Save Variant
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

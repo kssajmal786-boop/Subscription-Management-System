@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-calendar2-range-fill text-primary me-2"></i>Plan Specification</h2>
+        <span class="text-muted text-xs">Configure cadence, pricing, grace periods, and lifecycle rules</span>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="id_plan_name">Plan Name</label>
+            {{ form.plan_name }}
+            {% if form.plan_name.errors %}
+              <div class="text-danger text-xs mt-1">{{ form.plan_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_product">Base Product</label>
+              {{ form.product }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="id_variant">Product Variant (Optional)</label>
+              {{ form.variant }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_billing_cycle">Billing Cycle</label>
+              {{ form.billing_cycle }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_base_price">Base Plan Price (₹)</label>
+              {{ form.base_price }}
+              {% if form.base_price.errors %}
+                <div class="text-danger text-xs mt-1">{{ form.base_price.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_min_quantity">Min Quantity</label>
+              {{ form.min_quantity }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_default_duration_months">Duration (Months)</label>
+              {{ form.default_duration_months }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_max_cycles">Max Renewal Cycles</label>
+              {{ form.max_cycles }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_grace_period_days">Grace Period (Days)</label>
+              {{ form.grace_period_days }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_max_pause_days">Max Pause Days</label>
+              {{ form.max_pause_days }}
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-center mt-4">
+              <div class="form-check form-switch">
+                {{ form.allow_pause }}
+                <label class="form-check-label ms-2" for="id_allow_pause">Allow Customer Pause</label>
+              </div>
+            </div>
+            <div class="col-12 col-md-4 d-flex align-items-center mt-4">
+              <div class="form-check form-switch">
+                {{ form.auto_renew_default }}
+                <label class="form-check-label ms-2" for="id_auto_renew_default">Auto-Renew Default</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              {{ form.is_active }}
+              <label class="form-check-label ms-2" for="id_is_active">Plan Active</label>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <a href="/subscriptions/plans/" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Save Plan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

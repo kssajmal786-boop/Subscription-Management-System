@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}User Management – Subscribify{% endblock %}
+{% block page_title %}System User Directory{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>User Management & Access Control</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">User Management</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'accounts:staff_create' %}" class="btn btn-primary" style="background:#6366f1;border:none;">
+      <i class="bi bi-person-plus me-1"></i> Add Staff / Admin
+    </a>
+    <a href="{% url 'accounts:customer_create' %}" class="btn btn-outline-light">
+      <i class="bi bi-building-add me-1"></i> Add Customer
+    </a>
+  </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card mb-4 p-3" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="search-bar">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search by user name or email..."/>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="role" class="form-select">
+        <option value="">All Roles</option>
+        {% for val, label in role_choices %}
+        <option value="{{ val }}" {% if role_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive / Suspended</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-grow-1" style="background:#6366f1;border:none;">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or role_filter or status_filter %}
+      <a href="{% url 'accounts:user_management' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Users Table -->
+<div class="card mb-4 animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white"><i class="bi bi-people text-primary me-2"></i>Registered System Users</h5>
+    <span class="badge bg-secondary">{{ total_count }} Total Accounts</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">User</th>
+            <th>Role</th>
+            <th>Email Verified</th>
+            <th>Security Status</th>
+            <th>Active</th>
+            <th>Joined</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">
+                  {{ u.name|first|upper }}
+                </div>
+                <div>
+                  <div class="fw-bold text-white">{{ u.name }}</div>
+                  <div class="small text-secondary">{{ u.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if u.role == 'Admin' %}
+              <span class="badge bg-primary px-2 py-1"><i class="bi bi-shield-check me-1"></i>Administrator</span>
+              {% elif u.role == 'Staff' %}
+              <span class="badge bg-info text-dark px-2 py-1"><i class="bi bi-person-workspace me-1"></i>Operations Staff</span>
+              {% else %}
+              <span class="badge bg-secondary px-2 py-1"><i class="bi bi-person me-1"></i>Customer</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.email_verified %}
+              <span class="text-success small fw-semibold"><i class="bi bi-patch-check-fill me-1"></i>Verified</span>
+              {% else %}
+              <span class="text-warning small"><i class="bi bi-hourglass me-1"></i>Pending</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_locked %}
+              <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+              {% elif u.failed_login_attempts > 0 %}
+              <span class="badge bg-warning text-dark">{{ u.failed_login_attempts }} failed</span>
+              {% else %}
+              <span class="text-secondary small">Normal</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-danger">Deactivated</span>
+              {% endif %}
+            </td>
+            <td class="text-secondary small">{{ u.created_at|date:"d M Y" }}</td>
+            <td class="text-end pe-4">
+              {% if u.pk != request.user.pk %}
+              <a href="{% url 'accounts:user_toggle_active' u.pk %}" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" onclick="return confirm('Change active status for {{ u.email }}?');">
+                {% if u.is_active %}
+                <i class="bi bi-person-x"></i> Deactivate
+                {% else %}
+                <i class="bi bi-person-check"></i> Activate
+                {% endif %}
+              </a>
+              {% else %}
+              <span class="badge bg-secondary text-white-50">Current User</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-secondary">
+              No user accounts found matching query.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if users.has_other_pages %}
+    <div class="p-3 d-flex justify-content-between align-items-center" style="border-top:1px solid #334155;">
+      <span class="small text-secondary">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+      <div class="btn-group">
+        {% if users.has_previous %}
+        <a href="?page={{ users.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}" class="btn btn-sm btn-outline-secondary">&laquo; Previous</a>
+        {% endif %}
+        {% if users.has_next %}
+        <a href="?page={{ users.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}" class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Security Audit Trail -->
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white"><i class="bi bi-shield-shaded text-warning me-2"></i>Recent Security Audit Events</h5>
+    <span class="small text-secondary">Last 20 authentication & authorization events</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;color:#94a3b8;font-size:11px;text-transform:uppercase;">
+            <th class="ps-4">Timestamp</th>
+            <th>Event Action</th>
+            <th>Target User</th>
+            <th>Actor</th>
+            <th>IP Address</th>
+            <th class="pe-4">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_audits %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 text-secondary">{{ log.timestamp|date:"d M Y, H:i:s" }}</td>
+            <td>
+              {% if 'FAILED' in log.action or 'LOCKED' in log.action or 'DENIED' in log.action %}
+              <span class="badge bg-danger">{{ log.action }}</span>
+              {% elif 'SUCCESS' in log.action or 'VERIFIED' in log.action %}
+              <span class="badge bg-success">{{ log.action }}</span>
+              {% else %}
+              <span class="badge bg-secondary">{{ log.action }}</span>
+              {% endif %}
+            </td>
+            <td class="text-light">{{ log.user.email|default:"Anonymous" }}</td>
+            <td class="text-secondary">{{ log.actor.email|default:"Self / System" }}</td>
+            <td class="font-monospace text-secondary">{{ log.ip_address|default:"—" }}</td>
+            <td class="pe-4 text-light text-truncate" style="max-width:300px;">{{ log.details }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center py-4 text-secondary">No security logs recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

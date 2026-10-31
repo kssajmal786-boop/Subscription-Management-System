@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Discount Rules{% endblock %}
+{% block page_title %}Coupons & Discount Rules{% endblock %}
+
+{% block topbar_actions %}
+<a href="/billing/discounts/create/" class="btn btn-primary btn-sm">
+  <i class="bi bi-tag-fill me-1"></i> New Discount Rule
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-percent text-primary me-2"></i>Active Promotional Campaigns</h2>
+    <span class="badge badge-primary">{{ discounts|length }} Rules</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Coupon Code</th>
+            <th>Name</th>
+            <th>Discount Value</th>
+            <th>Valid Period</th>
+            <th>Redemptions</th>
+            <th>Applies To</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in discounts %}
+          <tr>
+            <td>
+              <span class="font-monospace fw-bold text-accent px-2 py-1 rounded" style="background: rgba(108,60,225,0.1); border: 1px dashed var(--primary-light);">
+                {{ d.code }}
+              </span>
+            </td>
+            <td class="fw-semibold text-light">{{ d.name }}</td>
+            <td class="fw-bold font-monospace">
+              {% if d.discount_type == 'Percentage' %}
+                <span class="text-info">{{ d.discount_value }}%</span>
+                {% if d.max_discount_cap %}<span class="text-muted text-xs ms-1">(Max ₹{{ d.max_discount_cap|floatformat:0 }})</span>{% endif %}
+              {% else %}
+                <span class="text-success">₹{{ d.discount_value|floatformat:2 }} Flat</span>
+              {% endif %}
+            </td>
+            <td class="text-xs text-muted">
+              {{ d.start_date|default:"Any" }} &rarr; {{ d.end_date|default:"Never" }}
+            </td>
+            <td class="text-xs font-monospace">
+              {{ d.usage_count }} / {% if d.max_usage_limit %}{{ d.max_usage_limit }}{% else %}&infin;{% endif %}
+            </td>
+            <td class="text-xs text-muted">
+              {% if d.applicable_product %}
+                {{ d.applicable_product.name }}
+              {% elif d.applicable_plan %}
+                {{ d.applicable_plan.plan_name }}
+              {% else %}
+                All (Global)
+              {% endif %}
+            </td>
+            <td>
+              {% if d.is_active %}
+                <span class="badge badge-success">Active</span>
+              {% else %}
+                <span class="badge badge-danger">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="/billing/discounts/{{ d.pk }}/edit/" class="btn btn-xs btn-outline" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="post" action="/billing/discounts/{{ d.pk }}/toggle/" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-xs {% if d.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" title="Toggle status">
+                    <i class="bi bi-power"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted p-5">
+              <i class="bi bi-tag" style="font-size: 2rem;"></i>
+              <p class="mt-2 mb-0">No discount rules configured yet.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

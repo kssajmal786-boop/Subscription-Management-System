@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Payments Ledger – Subscribify{% endblock %}
+{% block page_title %}Payments & Collections{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Payments & Collections</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">Payments</span>
+    </div>
+  </div>
+  {% if user.role == 'Admin' %}
+  <div>
+    <a href="{% url 'reports:export_payments' %}" class="btn btn-outline-light btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-4 p-3" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="search-bar">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search payment #, customer, or transaction ID..."/>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <select name="method" class="form-select">
+        <option value="">All Payment Methods</option>
+        {% for code, label in method_choices %}
+        <option value="{{ code }}" {% if method_filter == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-grow-1" style="background:#6366f1;border:none;">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or method_filter %}
+      <a href="{% url 'payments:list' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Payments Table -->
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Receipt #</th>
+            <th>Customer</th>
+            <th>Invoice Reference</th>
+            <th>Date & Time</th>
+            <th>Method</th>
+            <th>Transaction ID</th>
+            <th class="text-end">Amount</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pmt in payments %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 fw-bold">
+              <a href="{% url 'payments:detail' pmt.pk %}" class="text-light text-decoration-none">
+                {{ pmt.payment_number }}
+              </a>
+            </td>
+            <td>
+              <div class="fw-semibold text-white">{{ pmt.customer.display_name }}</div>
+              <div class="small text-secondary">{{ pmt.customer.user.email }}</div>
+            </td>
+            <td>
+              <a href="{% url 'billing:invoice_detail' pmt.invoice.pk %}" class="text-info text-decoration-none">
+                {{ pmt.invoice.invoice_number }}
+              </a>
+            </td>
+            <td>{{ pmt.payment_date|date:"d M Y, H:i" }}</td>
+            <td><span class="badge bg-secondary">{{ pmt.payment_method }}</span></td>
+            <td class="font-monospace text-secondary">{{ pmt.transaction_reference|default:"—" }}</td>
+            <td class="text-end fw-bold text-success">₹{{ pmt.amount|floatformat:2 }}</td>
+            <td class="text-end pe-4">
+              <a href="{% url 'payments:detail' pmt.pk %}" class="btn btn-sm btn-outline-light">
+                <i class="bi bi-eye"></i> Details
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-secondary">
+              <i class="bi bi-credit-card fs-1 d-block mb-2 opacity-40"></i>
+              No payment transactions found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

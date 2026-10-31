@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/billing/invoices/{{ invoice.pk }}/pdf/?preview=1" class="btn btn-outline btn-sm" target="_blank">
+  <i class="bi bi-eye"></i> Preview
+</a>
+<a href="/billing/invoices/{{ invoice.pk }}/pdf/" class="btn btn-outline btn-sm">
+  <i class="bi bi-download"></i> Download PDF
+</a>
+<a href="/billing/invoices/{{ invoice.pk }}/email/" class="btn btn-outline btn-sm">
+  <i class="bi bi-envelope"></i> Email
+</a>
+{% if invoice.status not in 'Paid,Cancelled' %}
+<a href="/billing/payments/record/{{ invoice.pk }}/" class="btn btn-primary btn-sm">
+  <i class="bi bi-credit-card"></i> Record Payment
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:24px;">
+
+  <!-- Invoice Info -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 Invoice Details</span>
+      <span class="badge
+        {% if invoice.status == 'Paid' %}badge-paid
+        {% elif invoice.status == 'Partially_Paid' %}badge-partial
+        {% elif invoice.status == 'Overdue' %}badge-overdue
+        {% elif invoice.status == 'Confirmed' %}badge-confirmed
+        {% elif invoice.status == 'Draft' %}badge-draft
+        {% else %}badge-cancelled{% endif %}
+        " style="font-size:13px; padding:6px 14px;">
+        {{ invoice.get_status_display }}
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="detail-row"><span class="detail-label">Invoice Number</span><span class="detail-value">{{ invoice.invoice_number }}</span></div>
+      <div class="detail-row"><span class="detail-label">Subscription Ref</span><span class="detail-value">{{ invoice.subscription.subscription_number }}</span></div>
+      <div class="detail-row"><span class="detail-label">Invoice Date</span><span class="detail-value">{{ invoice.invoice_date }}</span></div>
+      <div class="detail-row"><span class="detail-label">Due Date</span>
+        <span class="detail-value {% if invoice.is_overdue %}amount-overdue{% endif %}">{{ invoice.due_date }}</span>
+      </div>
+      <div class="detail-row"><span class="detail-label">Billing Period</span>
+        <span class="detail-value">{{ invoice.billing_period_start }} → {{ invoice.billing_period_end }}</span>
+      </div>
+      {% if invoice.discount %}
+      <div class="detail-row"><span class="detail-label">Discount Applied</span>
+        <span class="detail-value" style="color:var(--accent);">{{ invoice.discount.name }} ({{ invoice.discount.code }})</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Customer Info -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">👤 Billed To</span></div>
+    <div class="card-body">
+      <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">{{ invoice.customer.user.get_full_name }}</span></div>
+      <div class="detail-row"><span class="detail-label">Company</span><span class="detail-value">{{ invoice.customer.company_name|default:"—" }}</span></div>
+      <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">{{ invoice.customer.user.email }}</span></div>
+      <div class="detail-row"><span class="detail-label">GSTIN</span><span class="detail-value">{{ invoice.customer.gst_number|default:"—" }}</span></div>
+      <div class="detail-row"><span class="detail-label">Address</span><span class="detail-value">{{ invoice.customer.billing_address|default:"—" }}</span></div>
+      <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">{{ invoice.customer.phone|default:"—" }}</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Line Items -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header"><span class="card-title">📦 Line Items</span></div>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Discount</th>
+          <th>Taxable</th>
+          <th>Tax %</th>
+          <th>Tax Amt</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in invoice.lines.all %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td>{{ line.description }}</td>
+          <td>{{ line.quantity }}</td>
+          <td class="amount">₹{{ line.unit_price|floatformat:2 }}</td>
+          <td class="amount" style="color:var(--accent);">
+            {% if line.discount_amount %}₹{{ line.discount_amount|floatformat:2 }}{% else %}—{% endif %}
+          </td>
+          <td class="amount">₹{{ line.taxable_amount|floatformat:2 }}</td>
+          <td>{{ line.tax_rate }}%</td>
+          <td class="amount">₹{{ line.tax_amount|floatformat:2 }}</td>
+          <td class="amount" style="font-weight:700;">₹{{ line.line_total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+  <!-- Payment History -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">💳 Payment History</span></div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr><th>Payment #</th><th>Date</th><th>Method</th><th>Amount</th><th>Ref</th><th>Receipt</th></tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td style="font-weight:600;">{{ payment.payment_number }}</td>
+            <td>{{ payment.payment_date }}</td>
+            <td>{{ payment.get_payment_method_display }}</td>
+            <td class="amount amount-paid">₹{{ payment.amount|floatformat:2 }}</td>
+            <td style="font-size:12px; color:var(--text-muted);">{{ payment.transaction_reference|default:"—" }}</td>
+            <td>
+              <a href="/billing/payments/{{ payment.pk }}/receipt/" class="btn btn-outline btn-sm btn-icon">
+                <i class="bi bi-receipt"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No payments recorded</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Totals Block -->
+  <div>
+    <div class="totals-block">
+      <div class="total-line"><span>Subtotal</span><span class="amount">₹{{ invoice.subtotal|floatformat:2 }}</span></div>
+      {% if invoice.discount_amount %}
+      <div class="total-line" style="color:var(--accent);"><span>Discount ({{ invoice.discount.code }})</span><span>– ₹{{ invoice.discount_amount|floatformat:2 }}</span></div>
+      {% endif %}
+      <div class="total-line"><span>Taxable Amount</span><span class="amount">₹{{ invoice.taxable_amount|floatformat:2 }}</span></div>
+      <div class="total-line"><span>GST / Tax</span><span class="amount">₹{{ invoice.tax_amount|floatformat:2 }}</span></div>
+      <div class="total-line total-grand"><span>TOTAL</span><span>₹{{ invoice.total_amount|floatformat:2 }}</span></div>
+      <div class="total-line total-paid"><span>Amount Paid</span><span>₹{{ invoice.amount_paid|floatformat:2 }}</span></div>
+      <div class="total-line total-balance"><span>Balance Due</span><span>₹{{ invoice.balance_due|floatformat:2 }}</span></div>
+    </div>
+
+    {% if invoice.status not in 'Paid,Cancelled' %}
+    <div style="margin-top:16px;">
+      <a href="/billing/payments/record/{{ invoice.pk }}/" class="btn btn-primary btn-lg" style="width:100%; justify-content:center;">
+        <i class="bi bi-credit-card"></i>
+        {% if invoice.status == 'Partially_Paid' %}Record Further Payment{% else %}Record Payment{% endif %}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

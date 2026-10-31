@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Customers Directory – Subscribify{% endblock %}
+{% block page_title %}Customer Directory{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Customer Directory</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">Customers</span>
+    </div>
+  </div>
+  <div>
+    <a href="{% url 'accounts:customer_create' %}" class="btn btn-primary" style="background:#6366f1;border:none;">
+      <i class="bi bi-person-plus me-1"></i> Add Customer
+    </a>
+  </div>
+</div>
+
+<!-- Search & Status Filter Bar -->
+<div class="card mb-4 p-3" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-md-6">
+      <div class="search-bar">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search by customer name, company, email, phone, or GST..."/>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">All Account Statuses</option>
+        <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive / Suspended</option>
+        <option value="Pending_Verification" {% if status_filter == 'Pending_Verification' %}selected{% endif %}>Pending Verification</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-grow-1" style="background:#6366f1;border:none;">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or status_filter %}
+      <a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Customers Table -->
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+    <h5 class="mb-0 text-white"><i class="bi bi-people text-primary me-2"></i>Customer Directory</h5>
+    <span class="badge bg-secondary">{{ total_count|default:customers|length }} Customers</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Customer</th>
+            <th>Company</th>
+            <th>Phone</th>
+            <th>GST Number</th>
+            <th>Status</th>
+            <th>Outstanding</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cust in customers %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">
+                  {{ cust.user.name|first|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'accounts:customer_detail' cust.pk %}" class="fw-bold text-white text-decoration-none">
+                    {{ cust.user.name }}
+                  </a>
+                  <div class="small text-secondary">{{ cust.user.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-light">{{ cust.company_name|default:"—" }}</td>
+            <td class="text-secondary">{{ cust.phone|default:"—" }}</td>
+            <td class="text-secondary font-monospace">{{ cust.gst_number|default:"—" }}</td>
+            <td>
+              {% if cust.user.is_active and cust.status == 'Active' %}
+              <span class="badge bg-success">Active</span>
+              {% elif not cust.user.is_active or cust.status == 'Inactive' %}
+              <span class="badge bg-danger">Suspended</span>
+              {% else %}
+              <span class="badge bg-warning text-dark">{{ cust.status }}</span>
+              {% endif %}
+            </td>
+            <td class="fw-bold {% if cust.get_outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ cust.get_outstanding_balance|floatformat:2 }}
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group">
+                <a href="{% url 'accounts:customer_detail' cust.pk %}" class="btn btn-sm btn-outline-light" title="View Profile">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{% url 'accounts:customer_edit' cust.pk %}" class="btn btn-sm btn-outline-info" title="Edit Profile">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'accounts:customer_toggle_active' cust.pk %}" class="btn btn-sm {% if cust.user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" title="Toggle Active">
+                  <i class="bi {% if cust.user.is_active %}bi-person-x{% else %}bi-person-check{% endif %}"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-secondary">
+              <i class="bi bi-people fs-1 d-block mb-2 opacity-40"></i>
+              No customer records found matching query.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if customers.has_other_pages %}
+    <div class="p-3 d-flex justify-content-between align-items-center" style="border-top:1px solid #334155;">
+      <span class="small text-secondary">Page {{ customers.number }} of {{ customers.paginator.num_pages }}</span>
+      <div class="btn-group">
+        {% if customers.has_previous %}
+        <a href="?page={{ customers.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-sm btn-outline-secondary">&laquo; Previous</a>
+        {% endif %}
+        {% if customers.has_next %}
+        <a href="?page={{ customers.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

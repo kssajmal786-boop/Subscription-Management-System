@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions{% endblock %}
+{% block page_title %}Subscriptions & Quotations{% endblock %}
+
+{% block topbar_actions %}
+<a href="/subscriptions/create/" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-circle me-1"></i> New Quotation
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="d-flex align-items-center gap-2">
+      <label class="form-label mb-0 text-muted text-xs text-uppercase fw-bold">Filter Status:</label>
+      <select name="status" class="form-select form-select-sm" style="width: 200px;" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if status_filter %}
+        <a href="/subscriptions/" class="btn btn-xs btn-outline">Clear Filter</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-arrow-repeat text-primary me-2"></i>All Subscriptions</h2>
+    <span class="badge badge-primary">{{ subscriptions|length }} Records</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Sub Number</th>
+            <th>Customer</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Next Billing</th>
+            <th>Auto-Renew</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subscriptions %}
+          <tr>
+            <td>
+              <a href="/subscriptions/{{ s.pk }}/" class="text-accent fw-bold font-monospace">
+                {{ s.subscription_number }}
+              </a>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ s.customer.company_name|default:s.customer.user.get_full_name }}</div>
+              <div class="text-muted text-xs">{{ s.customer.user.email }}</div>
+            </td>
+            <td>
+              <span class="text-light">{{ s.plan.plan_name }}</span>
+              <span class="text-muted text-xs d-block">₹{{ s.plan.base_price|floatformat:2 }} / {{ s.plan.get_billing_cycle_display|lower }}</span>
+            </td>
+            <td>
+              {% if s.status == 'Active' %}
+                <span class="badge badge-success">Active</span>
+              {% elif s.status == 'Quotation' %}
+                <span class="badge badge-warning">Quotation</span>
+              {% elif s.status == 'Paused' %}
+                <span class="badge badge-secondary">Paused</span>
+              {% elif s.status == 'Cancelled' %}
+                <span class="badge badge-danger">Cancelled</span>
+              {% elif s.status == 'Expired' %}
+                <span class="badge badge-danger">Expired</span>
+              {% else %}
+                <span class="badge badge-primary">{{ s.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-xs">
+              {% if s.next_billing_date %}
+                <span class="text-info">{{ s.next_billing_date }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-xs">
+              {% if s.auto_renew %}
+                <i class="bi bi-check-circle-fill text-success"></i> Yes
+              {% else %}
+                <i class="bi bi-dash-circle text-muted"></i> No
+              {% endif %}
+            </td>
+            <td class="text-xs text-muted">{{ s.created_at|date:"M d, Y" }}</td>
+            <td>
+              <a href="/subscriptions/{{ s.pk }}/" class="btn btn-xs btn-outline">
+                View <i class="bi bi-chevron-right ms-1"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted p-5">
+              <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+              <p class="mt-2 mb-0">No subscriptions found.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

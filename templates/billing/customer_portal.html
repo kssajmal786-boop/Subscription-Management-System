@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}My Account & Subscriptions{% endblock %}
+{% block page_title %}Customer Self-Service Portal{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <!-- Balance Due Card -->
+  <div class="col-12 col-md-4">
+    <div class="card h-100 p-4" style="border-top: 3px solid var(--accent);">
+      <div class="text-muted text-xs text-uppercase fw-bold">Total Balance Due</div>
+      <div class="fw-bold {% if outstanding > 0 %}text-warning{% else %}text-success{% endif %} mt-2" style="font-size: 2rem;">
+        ₹{{ outstanding|floatformat:2 }}
+      </div>
+      <div class="text-muted text-xs mt-1">Across all open invoices</div>
+    </div>
+  </div>
+
+  <!-- Active Subscriptions -->
+  <div class="col-12 col-md-4">
+    <div class="card h-100 p-4" style="border-top: 3px solid var(--primary);">
+      <div class="text-muted text-xs text-uppercase fw-bold">My Subscriptions</div>
+      <div class="fw-bold text-light mt-2" style="font-size: 2rem;">
+        {{ subscriptions|length }}
+      </div>
+      <div class="text-muted text-xs mt-1">Active recurring plans</div>
+    </div>
+  </div>
+
+  <!-- Unread Notifications -->
+  <div class="col-12 col-md-4">
+    <div class="card h-100 p-4" style="border-top: 3px solid var(--info);">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="text-muted text-xs text-uppercase fw-bold">Notifications</div>
+          <div class="fw-bold text-info mt-2" style="font-size: 2rem;">
+            {{ unread_notifications }}
+          </div>
+          <div class="text-muted text-xs mt-1">Unread notices</div>
+        </div>
+        <a href="/billing/portal/notifications/" class="btn btn-sm btn-outline-info">View All</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- My Active Subscriptions -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2 class="card-title"><i class="bi bi-arrow-repeat text-primary me-2"></i>My Subscriptions</h2>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Cadence</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Next Renewal</th>
+            <th>Auto-Renew</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subscriptions %}
+          <tr>
+            <td class="fw-semibold text-light">{{ sub.plan.plan_name }}</td>
+            <td><span class="badge badge-info">{{ sub.plan.get_billing_cycle_display }}</span></td>
+            <td class="font-monospace text-accent fw-bold">₹{{ sub.plan.base_price|floatformat:2 }}</td>
+            <td>
+              {% if sub.status == 'Active' %}
+                <span class="badge badge-success">Active</span>
+              {% elif sub.status == 'Paused' %}
+                <span class="badge badge-secondary">Paused</span>
+              {% else %}
+                <span class="badge badge-warning">{{ sub.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-xs text-light">{{ sub.next_billing_date|default:"—" }}</td>
+            <td>
+              {% if sub.status == 'Quotation' %}
+                <a href="{% url 'subscriptions:quotation_accept' pk=sub.pk %}" class="btn btn-xs btn-success" onclick="return confirm('Accept quotation and activate subscription?');">
+                  <i class="bi bi-check-lg me-1"></i> Accept Quotation
+                </a>
+              {% elif sub.auto_renew %}
+                <span class="text-success text-xs"><i class="bi bi-check-circle-fill"></i> Enabled</span>
+              {% else %}
+                <span class="text-muted text-xs"><i class="bi bi-dash-circle"></i> Disabled</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted p-4">No active subscriptions.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Invoices -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title"><i class="bi bi-receipt text-primary me-2"></i>Recent Invoices</h2>
+    <a href="/billing/portal/invoices/" class="btn btn-outline btn-sm">All Invoices</a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Invoice Number</th>
+            <th>Date</th>
+            <th>Total Amount</th>
+            <th>Balance Due</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td class="font-monospace fw-bold text-accent">{{ inv.invoice_number }}</td>
+            <td class="text-xs text-muted">{{ inv.invoice_date }}</td>
+            <td class="font-monospace text-light">₹{{ inv.total_amount|floatformat:2 }}</td>
+            <td class="font-monospace fw-bold {% if inv.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ inv.balance_due|floatformat:2 }}
+            </td>
+            <td>
+              {% if inv.status == 'Paid' %}
+                <span class="badge badge-success">Paid</span>
+              {% elif inv.status == 'Overdue' %}
+                <span class="badge badge-danger">Overdue</span>
+              {% elif inv.status == 'Partially_Paid' %}
+                <span class="badge badge-warning">Partial</span>
+              {% else %}
+                <span class="badge badge-info">{{ inv.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="/billing/invoices/{{ inv.pk }}/pdf/?preview=1" class="btn btn-xs btn-outline" target="_blank" title="View PDF">
+                  <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+                {% if inv.balance_due > 0 %}
+                <a href="/billing/portal/invoices/{{ inv.pk }}/pay/" class="btn btn-xs btn-primary">
+                  <i class="bi bi-credit-card me-1"></i> Pay
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted p-4">No invoices on record.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Invoice Center{% endblock %}
+{% block page_title %}Invoice Center{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'billing:export_invoices_csv' %}" class="btn btn-outline btn-sm">
+  <i class="bi bi-download"></i> Export CSV
+</a>
+
+<a href="/billing/invoices/outstanding/" class="btn btn-outline btn-sm">
+  <i class="bi bi-hourglass-split"></i> Outstanding
+</a>
+<a href="/billing/invoices/overdue/" class="btn btn-danger btn-sm">
+  <i class="bi bi-exclamation-triangle"></i> Overdue
+</a>
+{% endblock %}
+
+
+{% block content %}
+<!-- Summary stats -->
+<div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="kpi-card kpi-blue">
+    <span class="kpi-icon">💰</span>
+    <div class="kpi-label">Total Billed</div>
+    <div class="kpi-value">₹{{ totals.total_billed|floatformat:0|default:"0" }}</div>
+  </div>
+  <div class="kpi-card kpi-green">
+    <span class="kpi-icon">✅</span>
+    <div class="kpi-label">Total Collected</div>
+    <div class="kpi-value">₹{{ totals.total_paid|floatformat:0|default:"0" }}</div>
+  </div>
+  <div class="kpi-card kpi-amber">
+    <span class="kpi-icon">⏳</span>
+    <div class="kpi-label">Total Balance Due</div>
+    <div class="kpi-value">₹{{ totals.total_due|floatformat:0|default:"0" }}</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" class="filter-bar">
+  <div>
+    <label class="form-label">Status</label>
+    {{ form.status }}
+  </div>
+  <div>
+    <label class="form-label">Customer</label>
+    {{ form.customer }}
+  </div>
+  <div>
+    <label class="form-label">From Date</label>
+    {{ form.date_from }}
+  </div>
+  <div>
+    <label class="form-label">To Date</label>
+    {{ form.date_to }}
+  </div>
+  <div>
+    <label class="form-label">Search</label>
+    {{ form.search }}
+  </div>
+  <div style="display:flex; gap:8px; align-items:flex-end;">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Filter</button>
+    <a href="/billing/invoices/" class="btn btn-outline btn-sm"><i class="bi bi-x-lg"></i> Clear</a>
+  </div>
+</form>
+
+<!-- Invoices Table -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🧾 Invoices ({{ page.paginator.count }} total)</span>
+  </div>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Customer</th>
+          <th>Subscription</th>
+          <th>Period</th>
+          <th>Total</th>
+          <th>Balance</th>
+          <th>Status</th>
+          <th>Due Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for invoice in page.object_list %}
+        <tr>
+          <td>
+            <a href="/billing/invoices/{{ invoice.pk }}/" style="color:var(--primary-light); font-weight:700;">
+              {{ invoice.invoice_number }}
+            </a>
+          </td>
+          <td>{{ invoice.customer.company_name|default:invoice.customer.user.get_full_name }}</td>
+          <td style="font-size:12px; color:var(--text-muted);">{{ invoice.subscription.subscription_number }}</td>
+          <td style="font-size:12px;">{{ invoice.billing_period_start }} – {{ invoice.billing_period_end }}</td>
+          <td class="amount">₹{{ invoice.total_amount|floatformat:2 }}</td>
+          <td class="amount {% if invoice.balance_due > 0 %}amount-due{% else %}amount-paid{% endif %}">
+            ₹{{ invoice.balance_due|floatformat:2 }}
+          </td>
+          <td>
+            <span class="badge
+              {% if invoice.status == 'Paid' %}badge-paid
+              {% elif invoice.status == 'Partially_Paid' %}badge-partial
+              {% elif invoice.status == 'Overdue' %}badge-overdue
+              {% elif invoice.status == 'Confirmed' %}badge-confirmed
+              {% elif invoice.status == 'Draft' %}badge-draft
+              {% else %}badge-cancelled{% endif %}">
+              {{ invoice.get_status_display }}
+            </span>
+          </td>
+          <td style="{% if invoice.is_overdue %}color:var(--danger); font-weight:600;{% endif %}">
+            {{ invoice.due_date }}
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <a href="/billing/invoices/{{ invoice.pk }}/" class="btn btn-outline btn-sm btn-icon" title="View">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="/billing/invoices/{{ invoice.pk }}/pdf/?preview=1" class="btn btn-outline btn-sm btn-icon" title="Preview PDF" target="_blank">
+                <i class="bi bi-file-pdf"></i>
+              </a>
+              <a href="/billing/invoices/{{ invoice.pk }}/pdf/" class="btn btn-outline btn-sm btn-icon" title="Download PDF">
+                <i class="bi bi-download"></i>
+              </a>
+              {% if invoice.status not in 'Paid,Cancelled' %}
+              <a href="/billing/payments/record/{{ invoice.pk }}/" class="btn btn-success btn-sm btn-icon" title="Record Payment">
+                <i class="bi bi-credit-card"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" style="text-align:center; color:var(--text-muted); padding:40px;">
+            <div style="font-size:32px; margin-bottom:12px;">🧾</div>
+            No invoices found matching your filters.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page.has_other_pages %}
+  <div class="card-body" style="border-top:1px solid var(--border-subtle);">
+    <div class="pagination-bar">
+      {% if page.has_previous %}
+        <a href="?page={{ page.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="page-link">‹</a>
+      {% endif %}
+      {% for num in page.paginator.page_range %}
+        {% if num == page.number %}
+          <span class="page-link active">{{ num }}</span>
+        {% elif num > page.number|add:"-3" and num < page.number|add:"3" %}
+          <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}" class="page-link">›</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

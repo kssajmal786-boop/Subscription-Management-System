@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Subscription Plans{% endblock %}
+{% block page_title %}Subscription Plans & Pricing Tiers{% endblock %}
+
+{% block topbar_actions %}
+<a href="/subscriptions/plans/create/" class="btn btn-primary btn-sm">
+  <i class="bi bi-plus-circle me-1"></i> Add Plan
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  {% for plan in plans %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-start">
+        <div>
+          <span class="badge badge-info mb-2">{{ plan.get_billing_cycle_display }}</span>
+          <h2 class="card-title text-primary-light mb-1">{{ plan.plan_name }}</h2>
+          <span class="text-muted text-xs">Product: {{ plan.product.name }}{% if plan.variant %} ({{ plan.variant.attribute_value }}){% endif %}</span>
+        </div>
+        <div>
+          {% if plan.is_active %}
+            <span class="badge badge-success">Active</span>
+          {% else %}
+            <span class="badge badge-danger">Inactive</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="mb-3 text-center p-3 rounded" style="background: rgba(108, 60, 225, 0.08); border: 1px solid rgba(108, 60, 225, 0.2);">
+          <div class="text-muted text-xs">Plan Price / Cycle</div>
+          <div class="fw-bold text-accent" style="font-size: 1.75rem;">₹{{ plan.base_price|floatformat:2 }}</div>
+          <div class="text-muted text-xs mt-1">Billed {{ plan.get_billing_cycle_display|lower }}</div>
+        </div>
+
+        <div class="row g-2 text-xs mb-3">
+          <div class="col-6">
+            <span class="text-muted">Min Quantity:</span> <strong class="text-light">{{ plan.min_quantity }}</strong>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Duration:</span> <strong class="text-light">{{ plan.default_duration_months }} mos</strong>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Grace Period:</span> <strong class="text-light">{{ plan.grace_period_days }} days</strong>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Pause Allowed:</span> <strong class="{% if plan.allow_pause %}text-success{% else %}text-muted{% endif %}">{% if plan.allow_pause %}Yes ({{ plan.max_pause_days }}d){% else %}No{% endif %}</strong>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Auto-Renew:</span> <strong class="{% if plan.auto_renew_default %}text-info{% else %}text-muted{% endif %}">{% if plan.auto_renew_default %}Enabled{% else %}Disabled{% endif %}</strong>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Max Cycles:</span> <strong class="text-light">{{ plan.max_cycles|default:"Unlimited" }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-end bg-transparent border-top" style="border-color: var(--border-color) !important;">
+        <a href="/subscriptions/plans/{{ plan.pk }}/edit/" class="btn btn-xs btn-outline">
+          <i class="bi bi-pencil-square me-1"></i> Edit Plan
+        </a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="card p-5 text-center text-muted">
+      <i class="bi bi-card-checklist" style="font-size: 3rem;"></i>
+      <h3 class="mt-3">No Plans Configured</h3>
+      <p>Configure recurring billing cycles and subscription plans for your products.</p>
+      <div class="mt-2">
+        <a href="/subscriptions/plans/create/" class="btn btn-primary">Create First Plan</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

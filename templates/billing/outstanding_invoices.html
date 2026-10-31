@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Outstanding Invoices{% endblock %}
+{% block page_title %}Outstanding Receivables{% endblock %}
+
+{% block topbar_actions %}
+<a href="/billing/invoices/" class="btn btn-outline btn-sm">
+  <i class="bi bi-arrow-left me-1"></i> All Invoices
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="card-title text-warning"><i class="bi bi-hourglass-split me-2"></i>Unpaid & Partially Paid Invoices</h2>
+      <span class="text-muted text-xs">Confirmed, Partially Paid, and Overdue billing invoices</span>
+    </div>
+    <span class="badge badge-warning">{{ invoices|length }} Outstanding</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Invoice Number</th>
+            <th>Customer</th>
+            <th>Subscription</th>
+            <th>Due Date</th>
+            <th class="text-end">Total Amount</th>
+            <th class="text-end">Balance Due</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td>
+              <a href="/billing/invoices/{{ inv.pk }}/" class="text-accent fw-bold font-monospace">
+                {{ inv.invoice_number }}
+              </a>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ inv.customer.company_name|default:inv.customer.user.get_full_name }}</div>
+              <div class="text-muted text-xs">{{ inv.customer.user.email }}</div>
+            </td>
+            <td>
+              <a href="/subscriptions/{{ inv.subscription.pk }}/" class="text-muted text-xs font-monospace">
+                {{ inv.subscription.subscription_number }}
+              </a>
+            </td>
+            <td class="text-xs {% if inv.status == 'Overdue' %}text-danger fw-bold{% else %}text-muted{% endif %}">
+              {{ inv.due_date }}
+            </td>
+            <td class="text-end font-monospace text-light">₹{{ inv.total_amount|floatformat:2 }}</td>
+            <td class="text-end font-monospace fw-bold text-danger" style="font-size: 1rem;">
+              ₹{{ inv.balance_due|floatformat:2 }}
+            </td>
+            <td>
+              {% if inv.status == 'Overdue' %}
+                <span class="badge badge-danger">Overdue</span>
+              {% elif inv.status == 'Partially_Paid' %}
+                <span class="badge badge-warning">Partial</span>
+              {% else %}
+                <span class="badge badge-info">{{ inv.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/billing/invoices/{{ inv.pk }}/payment/" class="btn btn-xs btn-primary">
+                <i class="bi bi-cash me-1"></i> Pay
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted p-5">
+              <i class="bi bi-shield-check text-success" style="font-size: 2.5rem;"></i>
+              <h4 class="mt-2 text-success">Zero Outstanding Invoices</h4>
+              <p class="mb-0">All issued invoices have been fully reconciled and paid.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

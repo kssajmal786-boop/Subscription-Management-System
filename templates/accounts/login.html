@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+  <div class="auth-card fade-in-up">
+    <div class="auth-logo">
+      <div class="logo-icon">💰</div>
+      <div>
+        <div style="font-size:20px; font-weight:800; color:var(--text-primary);">Subscribify</div>
+        <div style="font-size:11px; color:var(--text-muted); font-weight:500; letter-spacing:1px;">BILLING PLATFORM</div>
+      </div>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account to manage subscriptions and billing.</p>
+
+    <form method="post" id="login-form">
+      {% csrf_token %}
+      <div style="margin-bottom:16px;">
+        <label class="form-label" for="id_email">Email Address</label>
+        <input type="email" name="email" id="id_email" class="form-control"
+               placeholder="you@company.com" required
+               value="{{ form.email.value|default:'' }}">
+        {% if form.email.errors %}
+          <div style="color:var(--danger); font-size:12px; margin-top:4px;">{{ form.email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label class="form-label" for="id_password" style="margin-bottom:0;">Password</label>
+          <a href="/accounts/forgot-password/" style="font-size:12px; color:var(--primary-light); text-decoration:none;">Forgot password?</a>
+        </div>
+        <input type="password" name="password" id="id_password" class="form-control"
+               placeholder="••••••••••" required>
+        {% if form.password.errors %}
+          <div style="color:var(--danger); font-size:12px; margin-top:4px;">{{ form.password.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="alert alert-danger" style="margin-bottom:16px;">
+            <i class="bi bi-x-circle"></i> {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%; justify-content:center;">
+        <i class="bi bi-box-arrow-in-right"></i> Sign In
+      </button>
+    </form>
+
+    <div style="text-align:center; margin-top:24px; font-size:13px; color:var(--text-muted);">
+      Don't have an account?
+      <a href="/accounts/register/" style="color:var(--primary-light); font-weight:600; text-decoration:none;">Register here</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

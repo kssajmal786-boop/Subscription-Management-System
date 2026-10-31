@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Record Payment – {{ invoice.invoice_number }} – Subscribify{% endblock %}
+{% block page_title %}Record Payment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+      <div class="card-header p-4" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="text-white mb-1"><i class="bi bi-credit-card text-success me-2"></i>Invoice Payment</h5>
+            <span class="text-secondary small">Apply payment to <strong>{{ invoice.invoice_number }}</strong></span>
+          </div>
+          <div class="text-end">
+            <span class="text-secondary small d-block">Balance Due</span>
+            <span class="text-danger fw-bold fs-5">₹{{ invoice.balance_due|floatformat:2 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label text-light small fw-semibold">Payment Amount (₹)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary">₹</span>
+              <input type="number" step="0.01" name="amount" value="{{ form.amount.value|default:invoice.balance_due }}" max="{{ invoice.balance_due }}" required class="form-control fw-bold"/>
+            </div>
+            <div class="form-text text-secondary small">You may enter a partial payment up to ₹{{ invoice.balance_due|floatformat:2 }}.</div>
+            {% if form.amount.errors %}<div class="text-danger small mt-1">{{ form.amount.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-light small fw-semibold">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              {% for val, label in form.fields.payment_method.choices %}
+              <option value="{{ val }}" {% if form.payment_method.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-light small fw-semibold">Transaction / UTR Reference</label>
+            <input type="text" name="transaction_reference" value="{{ form.transaction_reference.value|default:'' }}" class="form-control" placeholder="Bank ref, UTR, or Razorpay ID"/>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-light small fw-semibold">Reconciliation Notes</label>
+            <textarea name="notes" rows="2" class="form-control" placeholder="Internal notes or confirmation receipt details...">{{ form.notes.value|default:'' }}</textarea>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-2">
+            <a href="{% url 'billing:invoice_detail' invoice.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success fw-bold px-4" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;">
+              <i class="bi bi-check2-circle me-1"></i> Confirm & Record Payment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

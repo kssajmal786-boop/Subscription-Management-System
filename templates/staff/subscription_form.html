@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – Subscribify{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+      <div class="card-header p-4" style="background:rgba(15,23,42,0.6);border-bottom:1px solid #334155;">
+        <h5 class="text-white mb-0"><i class="bi bi-file-earmark-text text-primary me-2"></i>Create Subscription Quotation</h5>
+        <div class="text-secondary small mt-1">Configure plan, customer, discount, and validity terms.</div>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Target Customer *</label>
+              {{ form.customer }}
+              {% if form.customer.errors %}<div class="text-danger small mt-1">{{ form.customer.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label text-light small fw-semibold">Subscription Plan *</label>
+              {{ form.plan }}
+              {% if form.plan.errors %}<div class="text-danger small mt-1">{{ form.plan.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-light small fw-semibold">Quantity / Licenses *</label>
+              <input type="number" min="1" name="quantity" value="{{ form.quantity.value|default:1 }}" class="form-control" required/>
+              {% if form.quantity.errors %}<div class="text-danger small mt-1">{{ form.quantity.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-light small fw-semibold">Discount Rule</label>
+              {{ form.applied_discount }}
+              {% if form.applied_discount.errors %}<div class="text-danger small mt-1">{{ form.applied_discount.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-light small fw-semibold">Quotation Expiry Date</label>
+              {{ form.quotation_validity_date }}
+              {% if form.quotation_validity_date.errors %}<div class="text-danger small mt-1">{{ form.quotation_validity_date.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-12">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" name="auto_renew" id="id_auto_renew" {% if form.auto_renew.value %}checked{% endif %}>
+                <label class="form-check-label text-light" for="id_auto_renew">Enable Automatic Recurring Renewals</label>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label text-light small fw-semibold">Terms / Internal Notes</label>
+              {{ form.notes }}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-4">
+            <a href="{% url 'subscriptions:list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4 fw-bold" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;">
+              <i class="bi bi-check2 me-1"></i> Generate Quotation
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

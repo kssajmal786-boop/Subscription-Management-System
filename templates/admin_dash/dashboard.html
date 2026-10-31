@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – Subscribify{% endblock %}
+{% block page_title %}Executive Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+.chart-card { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px; }
+.chart-title { font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Executive Dashboard</h1>
+    <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item active">Home</li></ol></nav>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'subscriptions:create' %}" class="btn-primary-custom"><i class="bi bi-plus-circle"></i> New Quotation</a>
+    <a href="{% url 'reports:dashboard' %}" class="btn-ghost"><i class="bi bi-bar-chart"></i> Reports</a>
+  </div>
+</div>
+
+<!-- KPI Cards Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3 animate-in">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-value">{{ kpis.total_customers|default:0 }}</div>
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-delta {% if kpis.customer_growth >= 0 %}positive{% else %}negative{% endif %}">
+        <i class="bi bi-arrow-{% if kpis.customer_growth >= 0 %}up{% else %}down{% endif %}-right"></i>
+        {{ kpis.customer_growth|default:0 }}% vs last month
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3 animate-in">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="kpi-value">{{ kpis.active_subscriptions|default:0 }}</div>
+      <div class="kpi-label">Active Subscriptions</div>
+      <div class="kpi-delta positive">
+        <i class="bi bi-graph-up"></i> MRR: {{ CURRENCY_SYMBOL }}{{ kpis.mrr|floatformat:0 }}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3 animate-in">
+    <div class="kpi-card kpi-success">
+      <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-value" style="font-size:1.4rem;">{{ CURRENCY_SYMBOL }}{{ kpis.collected_revenue|floatformat:0 }}</div>
+      <div class="kpi-label">Collected Revenue</div>
+      <div class="kpi-delta positive"><i class="bi bi-check-circle"></i> All time</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3 animate-in">
+    <div class="kpi-card kpi-warning">
+      <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="kpi-value" style="font-size:1.4rem;">{{ CURRENCY_SYMBOL }}{{ kpis.pending_receivables|floatformat:0 }}</div>
+      <div class="kpi-label">Pending Receivables</div>
+      <div class="kpi-delta"><i class="bi bi-clock"></i> Awaiting payment</div>
+    </div>
+  </div>
+</div>
+
+<!-- Overdue alert -->
+{% if kpis.overdue_count %}
+<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;">
+  <div style="width:36px;height:36px;background:rgba(239,68,68,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:18px;">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+  </div>
+  <div>
+    <div style="font-weight:700;color:#ef4444;">{{ kpis.overdue_count }} Overdue Invoice{{ kpis.overdue_count|pluralize }}</div>
+    <div style="font-size:12px;color:#94a3b8;">{{ CURRENCY_SYMBOL }}{{ kpis.overdue_amount|floatformat:2 }} at risk — <a href="{% url 'reports:aging' %}" style="color:#ef4444;">View Aging Report →</a></div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <!-- Revenue Trend -->
+  <div class="col-xl-8">
+    <div class="chart-card">
+      <div class="chart-title">
+        <i class="bi bi-graph-up" style="color:var(--primary);"></i>
+        12-Month Revenue Trend
+        <div style="margin-left:auto;display:flex;gap:16px;font-size:12px;font-weight:500;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#6366f1;border-radius:2px;display:inline-block;"></span>Billed</span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#22c55e;border-radius:2px;display:inline-block;"></span>Collected</span>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Subscription Status -->
+  <div class="col-xl-4">
+    <div class="chart-card">
+      <div class="chart-title"><i class="bi bi-pie-chart" style="color:var(--secondary);"></i> Subscription Status</div>
+      <div class="chart-container" style="height:220px;"><canvas id="statusChart"></canvas></div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">
+        {% for status, count in kpis.status_breakdown.items %}
+        <div style="display:flex;justify-content:space-between;font-size:12px;">
+          <span style="color:#94a3b8;">{{ status }}</span>
+          <span style="font-weight:700;color:#e2e8f0;">{{ count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expiring Quotations & Today's Activity -->
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clock-history" style="color:var(--warning);"></i>
+        <h5>Expiring Quotations (Next 3 Days)</h5>
+        <a href="{% url 'subscriptions:list' %}?status=Quotation" class="ms-auto btn-ghost" style="padding:4px 10px;font-size:12px;">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% if expiring_quotations %}
+        <table class="table mb-0">
+          <thead><tr><th>Quotation</th><th>Customer</th><th>Valid Until</th><th></th></tr></thead>
+          <tbody>
+          {% for sub in expiring_quotations %}
+          <tr>
+            <td><span style="font-family:monospace;color:#818cf8;">{{ sub.subscription_number }}</span></td>
+            <td>{{ sub.customer.display_name }}</td>
+            <td>
+              <span style="color:{% if sub.quotation_validity_date == today %}#ef4444{% else %}#f59e0b{% endif %};">
+                {{ sub.quotation_validity_date }}
+              </span>
+            </td>
+            <td><a href="{% url 'subscriptions:detail' sub.pk %}" class="btn-ghost" style="padding:3px 8px;font-size:11px;">View</a></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:30px;">
+          <i class="bi bi-calendar-check"></i>
+          <p>No quotations expiring soon</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Method Distribution -->
+  <div class="col-xl-6">
+    <div class="chart-card" style="height:100%;">
+      <div class="chart-title"><i class="bi bi-credit-card" style="color:var(--accent);"></i> Payment Methods</div>
+      <div class="chart-container" style="height:200px;"><canvas id="paymentChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const sym = '{{ CURRENCY_SYMBOL }}';
+  const chartDefaults = {
+    color: '#94a3b8',
+    font: { family: 'Inter' }
+  };
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.font.family = 'Inter';
+
+  // Revenue Trend Chart
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ kpis.trend_labels|default:"[]"|safe }},
+      datasets: [
+        {
+          label: 'Billed',
+          data: {{ kpis.trend_billed|default:"[]"|safe }},
+          backgroundColor: 'rgba(99,102,241,.6)',
+          borderColor: '#6366f1',
+          borderWidth: 1.5,
+          borderRadius: 4,
+        },
+        {
+          label: 'Collected',
+          data: {{ kpis.trend_collected|default:"[]"|safe }},
+          type: 'line',
+          fill: false,
+          borderColor: '#22c55e',
+          backgroundColor: '#22c55e',
+          tension: 0.4,
+          pointBackgroundColor: '#22c55e',
+          pointRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(51,65,85,.5)' }, ticks: { color: '#64748b', font: { size: 11 } } },
+        y: {
+          grid: { color: 'rgba(51,65,85,.5)' },
+          ticks: { color: '#64748b', font: { size: 11 },
+            callback: v => sym + v.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+
+  // Status Doughnut
+  const statusData = {{ kpis.status_breakdown|default:"{}"|safe }};
+  const statusColors = { Active:'#22c55e', Paused:'#f59e0b', Past_Due:'#ef4444', Closed:'#64748b', Quotation:'#38bdf8', Confirmed:'#818cf8', Draft:'#475569', Cancelled:'#374151' };
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(statusData),
+      datasets: [{ data: Object.values(statusData), backgroundColor: Object.keys(statusData).map(k => statusColors[k] || '#6366f1'), borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } } } }
+  });
+
+  // Payment Methods
+  const payData = {{ kpis.pay_methods|default:"{}"|safe }};
+  new Chart(document.getElementById('paymentChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(payData),
+      datasets: [{ data: Object.values(payData), backgroundColor: ['#6366f1','#0ea5e9','#22c55e','#f59e0b'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 }, formatter: (v, ctx) => v + ': ' + sym + ctx.dataset.data[ctx.dataIndex].toLocaleString() } } } }
+  });
+</script>
+{% endblock %}

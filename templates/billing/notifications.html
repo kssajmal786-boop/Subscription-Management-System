@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Account Notifications{% endblock %}
+
+{% block topbar_actions %}
+<a href="/billing/portal/" class="btn btn-outline btn-sm">
+  <i class="bi bi-arrow-left me-1"></i> Back to Portal
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title"><i class="bi bi-bell-fill text-info me-2"></i>Recent Alerts & Updates</h2>
+        <span class="badge badge-info">{{ page.paginator.count }} Total</span>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush bg-transparent">
+          {% for n in page %}
+          <li class="list-group-item bg-transparent text-light p-3 border-bottom" style="border-color: var(--border-color) !important;">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge {% if n.notification_type == 'Invoice_Created' %}badge-primary{% elif n.notification_type == 'Payment_Received' %}badge-success{% elif n.notification_type == 'Dunning_Warning' %}badge-danger{% else %}badge-info{% endif %} mb-1">
+                  {{ n.get_notification_type_display }}
+                </span>
+                <div class="fw-semibold text-light mt-1">{{ n.message }}</div>
+              </div>
+              <span class="text-xs text-muted font-monospace">{{ n.created_at|date:"M d, H:i" }}</span>
+            </div>
+          </li>
+          {% empty %}
+          <li class="list-group-item bg-transparent text-center text-muted p-5">
+            <i class="bi bi-bell-slash" style="font-size: 2rem;"></i>
+            <p class="mt-2 mb-0">No notifications at this time.</p>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% if page.has_other_pages %}
+      <div class="card-footer d-flex justify-content-between align-items-center bg-transparent border-top" style="border-color: var(--border-color) !important;">
+        <div class="text-xs text-muted">
+          Page {{ page.number }} of {{ page.paginator.num_pages }}
+        </div>
+        <div class="d-flex gap-1">
+          {% if page.has_previous %}
+            <a href="?page={{ page.previous_page_number }}" class="btn btn-xs btn-outline">Previous</a>
+          {% endif %}
+          {% if page.has_next %}
+            <a href="?page={{ page.next_page_number }}" class="btn btn-xs btn-outline">Next</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

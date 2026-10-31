@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions – Subscribify{% endblock %}
+{% block page_title %}Subscriptions & Quotations{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+  <div>
+    <h1>Subscriptions & Quotations</h1>
+    <div class="breadcrumb">
+      <span class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-secondary text-decoration-none">Home</a></span>
+      <span class="breadcrumb-item active">Subscriptions</span>
+    </div>
+  </div>
+  {% if user.role != 'Customer' %}
+  <div>
+    <a href="{% url 'subscriptions:create' %}" class="btn btn-primary" style="background:#6366f1;border:none;">
+      <i class="bi bi-plus-lg me-1"></i> New Quotation
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-4 p-3" style="background:#1e293b;border:1px solid #334155;border-radius:12px;">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="search-bar">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search subscription # or customer name..."/>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        {% for code, label in status_choices %}
+        <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-grow-1" style="background:#6366f1;border:none;">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+      {% if search or status_filter %}
+      <a href="{% url 'subscriptions:list' %}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Subscriptions Table -->
+<div class="card animate-in" style="background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0" style="background:transparent;">
+        <thead>
+          <tr style="border-bottom:1px solid #334155;font-size:12px;text-transform:uppercase;color:#94a3b8;">
+            <th class="ps-4">Subscription #</th>
+            <th>Customer</th>
+            <th>Plan & Variant</th>
+            <th>Interval</th>
+            <th>Status</th>
+            <th>Next Bill Date</th>
+            <th>Auto-Renew</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subscriptions %}
+          <tr style="border-bottom:1px solid rgba(51,65,85,0.4);vertical-align:middle;">
+            <td class="ps-4 fw-bold">
+              <a href="{% url 'subscriptions:detail' sub.pk %}" class="text-decoration-none text-light">
+                {{ sub.subscription_number }}
+              </a>
+            </td>
+            <td>
+              <div class="fw-semibold text-white">{{ sub.customer.display_name }}</div>
+              <div class="small text-secondary">{{ sub.customer.user.email }}</div>
+            </td>
+            <td>
+              <div class="text-white">{{ sub.plan.name }}</div>
+              <div class="small text-secondary">{{ sub.plan.product.name }}{% if sub.plan.variant %} ({{ sub.plan.variant.attribute_value }}){% endif %}</div>
+            </td>
+            <td><span class="badge bg-secondary">{{ sub.plan.billing_interval_display }}</span></td>
+            <td>
+              {% if sub.status == 'Active' %}
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+              {% elif sub.status == 'Quotation' %}
+              <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Quotation</span>
+              {% elif sub.status == 'Confirmed' %}
+              <span class="badge bg-primary"><i class="bi bi-check2-all me-1"></i>Confirmed</span>
+              {% elif sub.status == 'Paused' %}
+              <span class="badge bg-info"><i class="bi bi-pause-circle me-1"></i>Paused</span>
+              {% elif sub.status == 'Closed' %}
+              <span class="badge bg-secondary">Closed</span>
+              {% else %}
+              <span class="badge bg-secondary">{{ sub.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if sub.next_invoice_date %}
+              <div class="text-light">{{ sub.next_invoice_date|date:"d M Y" }}</div>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if sub.auto_renew %}
+              <span class="text-success small fw-semibold"><i class="bi bi-check2"></i> Yes</span>
+              {% else %}
+              <span class="text-secondary small">No</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group">
+                <a href="{% url 'subscriptions:detail' sub.pk %}" class="btn btn-sm btn-outline-light" title="View details">
+                  <i class="bi bi-eye"></i> View
+                </a>
+                {% if sub.status == 'Draft' or sub.status == 'Quotation' %}
+                <a href="{% url 'subscriptions:confirm' sub.pk %}" class="btn btn-sm btn-primary" title="Confirm">
+                  <i class="bi bi-check-lg"></i>
+                </a>
+                {% elif sub.status == 'Confirmed' %}
+                <a href="{% url 'subscriptions:activate' sub.pk %}" class="btn btn-sm btn-success" title="Activate">
+                  <i class="bi bi-lightning-charge"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-secondary">
+              <i class="bi bi-arrow-repeat fs-1 d-block mb-2 opacity-40"></i>
+              No subscriptions found matching filter criteria.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

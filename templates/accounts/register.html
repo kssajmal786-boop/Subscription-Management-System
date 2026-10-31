@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+  <div class="auth-card fade-in-up" style="max-width: 480px;">
+    <div class="auth-logo">
+      <div class="logo-icon">💰</div>
+      <div>
+        <div style="font-size:20px; font-weight:800; color:var(--text-primary);">Subscribify</div>
+        <div style="font-size:11px; color:var(--text-muted); font-weight:500; letter-spacing:1px;">BILLING PLATFORM</div>
+      </div>
+    </div>
+
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Get started with automated subscription and billing management.</p>
+
+    <form method="post" id="register-form">
+      {% csrf_token %}
+
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label" for="id_first_name">First Name</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+            <div class="text-danger text-xs mt-1">{{ form.first_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-6">
+          <label class="form-label" for="id_last_name">Last Name</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+            <div class="text-danger text-xs mt-1">{{ form.last_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="id_email">Email Address</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <div class="text-danger text-xs mt-1">{{ form.email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="id_password1">Password</label>
+        {{ form.password1 }}
+        <div class="text-muted text-xs mt-1">Min 9 chars, uppercase, lowercase, digit, & special character.</div>
+        {% if form.password1.errors %}
+          <div class="text-danger text-xs mt-1">{{ form.password1.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label" for="id_password2">Confirm Password</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+          <div class="text-danger text-xs mt-1">{{ form.password2.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-3">
+          {% for err in form.non_field_errors %}
+            <div>{{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-lg w-100 justify-content-center">
+        <i class="bi bi-person-plus me-1"></i> Register Account
+      </button>
+    </form>
+
+    <div style="text-align:center; margin-top:24px; font-size:13px; color:var(--text-muted);">
+      Already have an account?
+      <a href="/accounts/login/" style="color:var(--primary-light); font-weight:600; text-decoration:none;">Sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
